@@ -1,0 +1,43 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "default_agent": "build",
+  "instructions": ["AGENTS.md"],
+  "agent": {
+    "architect": {
+      "description": "Senior software architect for system design, module structure, and API decisions. Read-only analysis.",
+      "mode": "subagent"
+    },
+    "security-auditor": {
+      "description": "Security specialist for validation, sandboxing, and safe code execution. Read-only analysis.",
+      "mode": "subagent"
+    },
+    "frontend-specialist": {
+      "description": "UI/UX specialist for vanilla HTML/CSS/JS, accessibility, and visual performance. Can edit files.",
+      "mode": "subagent"
+    },
+    "build-optimizer": {
+      "description": "Build engineer for binary size optimization, LTO, and release profiling. Can edit and run cargo commands.",
+      "mode": "subagent"
+    }
+  },
+  "command": {
+    "audit": {
+      "description": "Run security audit on dependencies",
+      "agent": "build",
+      "template": "cargo audit"
+    },
+    "bench": {
+      "description": "Run benchmarks and analyze performance",
+      "agent": "build",
+      "template": "cargo bench"
+    }
+  },
+  "permission": {
+    "bash": {
+      "cargo *": "allow",
+      "rustup *": "allow",
+      "git *": "allow",
+      "*": "ask"
+    }
+  }
+}
