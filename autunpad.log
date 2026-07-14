@@ -1,0 +1,25 @@
+=== Autunpad Iniciando ===
+[hardware] Iniciando deteccao de hardware
+[hardware] Detectando RAM...
+[hardware] Executando wmic para RAM...
+[hardware] WMIC output: TotalPhysicalMemory  
+17059688448          
+
+
+[hardware] RAM parseada: 15 GB
+[hardware] RAM: 15 GB
+[hardware] Detectando CPU cores...
+[hardware] CPU cores detectados: 8
+[hardware] CPU cores: 8
+[hardware] Detectando GPU...
+[hardware] Verificando Vulkan...
+[hardware] where vulkaninfo: false
+[hardware] Vulkan: false
+[hardware] Verificando DX12...
+[hardware] Pulando dxdiag (lento), assumindo DX12 suportado
+[hardware] DX12: true
+[hardware] GPU tier: Medium
+[hardware] Vulkan: false, DX12: true
+GPU: Medium
+Renderer recomendado: wgpu
+Iniciando eframe...

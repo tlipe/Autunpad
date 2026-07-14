@@ -12,19 +12,21 @@
     "windows": [
       {
         "title": "Autunpad",
-        "width": 900,
-        "height": 600,
+        "width": 1000,
+        "height": 660,
+        "minWidth": 680,
+        "minHeight": 450,
         "resizable": true,
         "fullscreen": false,
         "center": true
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' ipc: http://ipc.localhost"
     }
   },
   "bundle": {
-    "active": false,
+    "active": true,
     "targets": ["nsis"]
   }
 }

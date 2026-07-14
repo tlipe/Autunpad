@@ -2,187 +2,542 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Autunpad</title>
   <style>
-    *{margin:0;padding:0;box-sizing:border-box}
-    body{font-family:'JetBrains Mono',monospace;background:#0a0a0a;color:#e0e0e0;overflow:hidden;height:100vh;display:flex;flex-direction:column}
-    .bg-surface{background:#111}.bg-hover{background:#1a1a1a}.bg-active{background:#222}.border-color{border-color:#2a2a2a}
-    .text-muted{color:#808080}.text-accent{color:#0078d4}
-    button{cursor:pointer;background:none;border:none;color:inherit;font:inherit}
-    button:disabled{opacity:.3;cursor:not-allowed}
-    .tab-el{cursor:pointer;display:flex;align-items:center;gap:8px;padding:0 14px;font-size:12px;white-space:nowrap;flex-shrink:0;height:100%;transition:all .3s cubic-bezier(0.4, 0, 0.2, 1);color:#808080}
-    .tab-el.tab-active{background:#222;border-bottom:2px solid #0078d4;color:#e0e0e0}
-    .tab-el.tab-inactive{border-bottom:2px solid transparent}
-    .tab-el.tab-inactive:hover{background:#1a1a1a;color:#e0e0e0}
-    .tab-el[draggable="true"]{cursor:grab}
-    .tab-el.dragging{opacity:.4;cursor:grabbing}
-    .tab-el.drag-over-left{box-shadow:inset 3px 0 0 #0078d4}
-    .tab-el.drag-over-right{box-shadow:inset -3px 0 0 #0078d4}
-    .tab-el .tab-name{cursor:text}
-    .tab-el .tab-folder{color:#808080;transition:all .3s;margin-left:4px;opacity:0;width:16px;height:16px;display:flex;align-items:center;justify-content:center}
-    .tab-el:hover .tab-folder{opacity:.6}
-    .tab-el .tab-folder:hover{opacity:1!important;transform:scale(1.1)}
-    .tab-el .tab-close{font-size:14px;cursor:pointer;margin-left:4px;opacity:0;width:18px;height:18px;display:flex;align-items:center;justify-content:center;border-radius:3px;transition:all .2s}
-    .tab-el:hover .tab-close{opacity:.6}
-    .tab-el .tab-close:hover{opacity:1!important;background:#ff5555;color:#fff;transform:scale(1.15)}
-    .editor-wrapper{position:relative;flex:1;overflow:hidden}
-    #editor{resize:none;font:14px/24px 'JetBrains Mono',monospace;width:100%;height:100%;background:transparent;color:#e0e0e0;border:none;padding:16px;outline:none;tab-size:4;position:relative;z-index:2;caret-color:#e0e0e0}
-    #highlight-layer{position:absolute;top:0;left:0;right:0;bottom:0;font:14px/24px 'JetBrains Mono',monospace;padding:16px;color:#e0e0e0;white-space:pre-wrap;overflow:hidden;pointer-events:none;z-index:1;background:#0a0a0a;tab-size:4}
-    #line-numbers{font:14px/24px 'JetBrains Mono',monospace;text-align:right;padding:16px 3px;color:#4a4a4a;user-select:none;white-space:pre;overflow:hidden;height:100%;flex-shrink:0}
-    .scrollbar-thin::-webkit-scrollbar{width:8px;height:8px}
-    .scrollbar-thin::-webkit-scrollbar-track{background:#111}
-    .scrollbar-thin::-webkit-scrollbar-thumb{background:#2a2a2a;border-radius:4px;transition:background .2s}
-    .scrollbar-thin::-webkit-scrollbar-thumb:hover{background:#3a3a3a}
-    #tabs-container{scroll-behavior:smooth;transition:scroll .3s ease}
-    .fade-in{animation:fadeIn .3s ease}
-    @keyframes fadeIn{from{opacity:0;transform:translateY(-2px)}to{opacity:1;transform:translateY(0)}}
-    .rename-input{background:#222;color:#e0e0e0;font:11px 'JetBrains Mono',monospace;padding:0 4px;border:1px solid #0078d4;border-radius:2px;outline:none;width:140px;height:20px}
-    #sidebar{position:relative;transition:width .1s ease}
-    #resize-handle{position:absolute;right:0;top:0;bottom:0;width:4px;background:transparent;cursor:col-resize;z-index:10;transition:background .2s}
-    #resize-handle:hover,#resize-handle.active{background:#0078d4}
-    .toolbar-btn{padding:6px;border-radius:4px;color:#808080;transition:all .15s;display:flex;align-items:center;justify-content:center}
-    .toolbar-btn:hover:not(:disabled){background:#1a1a1a;color:#e0e0e0}
-    .toolbar-btn:disabled{opacity:.3;cursor:not-allowed}
-    .settings-menu{position:absolute;right:0;top:100%;background:#111;border:1px solid #2a2a2a;border-radius:4px;padding:4px 0;min-width:160px;box-shadow:0 4px 12px rgba(0,0,0,.5);z-index:1000;opacity:0;visibility:hidden;transition:all .2s ease;transform:translateY(-8px)}
-    .settings-menu.show{opacity:1;visibility:visible;transform:translateY(0)}
-    .settings-item{padding:8px 12px;cursor:pointer;transition:background .15s;display:flex;align-items:center;gap:8px;font-size:12px}
-    .settings-item:hover{background:#1a1a1a}
-    .settings-item svg{width:14px;height:14px}
-    .hl-keyword{color:#c678dd}
-    .hl-string{color:#98c379}
-    .hl-number{color:#d19a66}
-    .hl-comment{color:#5c6370;font-style:italic}
-    .hl-function{color:#61afef}
-    .hl-variable{color:#e06c75}
-    .hl-operator{color:#56b6c2}
-    .hl-property{color:#e5c07b}
-    #find-replace{display:none;background:#1a1a1a;border-bottom:1px solid #2a2a2a;padding:8px 12px;gap:8px;align-items:center;font-size:12px}
-    #find-replace.show{display:flex}
-    #find-replace input{background:#111;border:1px solid #2a2a2a;color:#e0e0e0;padding:4px 8px;font:12px 'JetBrains Mono',monospace;border-radius:3px;outline:none;width:180px}
-    #find-replace input:focus{border-color:#0078d4}
-    #find-replace button{padding:4px 8px;background:#222;border:1px solid #2a2a2a;color:#e0e0e0;border-radius:3px;font-size:11px;transition:all .15s}
-    #find-replace button:hover{background:#2a2a2a}
-    .saved-indicator{opacity:0;transition:opacity .3s;color:#0078d4;font-weight:600}
-    .saved-indicator.show{opacity:1}
+    :root {
+      --font-mono: Consolas, 'Cascadia Mono', 'Segoe UI Mono', 'Liberation Mono', Menlo, Monaco, monospace;
+      --font-size: 14px;
+      --line-height: 24px;
+      --editor-pad: 16px;
+      --toolbar-h: 36px;
+      --status-h: 24px;
+      --terminal-h: 180px;
+      --sidebar-w: 240px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      line-height: 1.4;
+      background: #0a0a0a;
+      color: #e0e0e0;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: geometricPrecision;
+    }
+    
+    body {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      min-width: 0;
+    }
+    
+    .toolbar {
+      flex: 0 0 var(--toolbar-h);
+      display: flex;
+      align-items: center;
+      background: #111;
+      border-bottom: 1px solid #2a2a2a;
+      user-select: none;
+      width: 100%;
+      min-width: 0;
+      height: var(--toolbar-h);
+      max-height: var(--toolbar-h);
+      overflow: visible;
+      position: relative;
+      z-index: 50;
+    }
+    
+    .find-replace {
+      flex: 0 0 auto;
+      display: none;
+      background: #1a1a1a;
+      border-bottom: 1px solid #2a2a2a;
+      padding: 8px 12px;
+      gap: 8px;
+      align-items: center;
+      font-size: 12px;
+      width: 100%;
+      min-width: 0;
+      flex-shrink: 0;
+    }
+    
+    .find-replace.show { display: flex; }
+    
+    .main-area {
+      flex: 1 1 auto;
+      display: flex;
+      flex-direction: row;
+      overflow: hidden;
+      min-height: 0;
+      min-width: 0;
+      width: 100%;
+    }
+    
+    .terminal-panel {
+      flex: 0 0 var(--terminal-h);
+      display: none;
+      flex-direction: row;
+      background: #0d0d0d;
+      border-top: 1px solid #2a2a2a;
+      height: var(--terminal-h);
+      max-height: var(--terminal-h);
+      width: 100%;
+      min-width: 0;
+      min-height: 0;
+      overflow: hidden;
+    }
+    
+    .terminal-panel.visible { display: flex; }
+    
+    .status-bar {
+      flex: 0 0 var(--status-h);
+      display: flex;
+      align-items: center;
+      background: #111;
+      border-top: 1px solid #2a2a2a;
+      padding: 0 12px;
+      font-size: 12px;
+      color: #808080;
+      width: 100%;
+      min-width: 0;
+      height: var(--status-h);
+      max-height: var(--status-h);
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    
+    #tabs-container {
+      flex: 1 1 auto;
+      overflow-x: auto;
+      overflow-y: hidden;
+      display: flex;
+      align-items: stretch;
+      min-width: 0;
+      height: 100%;
+    }
+    
+    .tab-el {
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 14px;
+      font-size: 12px;
+      white-space: nowrap;
+      flex-shrink: 0;
+      height: 100%;
+      transition: background .15s, color .15s;
+      color: #808080;
+      user-select: none;
+    }
+    
+    .tab-el.tab-active { background: #222; border-bottom: 2px solid #0078d4; color: #e0e0e0; }
+    .tab-el.tab-inactive { border-bottom: 2px solid transparent; }
+    .tab-el.tab-inactive:hover { background: #1a1a1a; color: #e0e0e0; }
+    .tab-el.dragging { opacity: .4; cursor: grabbing; }
+    .tab-el.drag-over-left { box-shadow: inset 3px 0 0 #0078d4; }
+    .tab-el.drag-over-right { box-shadow: inset -3px 0 0 #0078d4; }
+    .tab-el .tab-name { cursor: text; }
+    .tab-el .tab-folder { color: #808080; transition: opacity .15s, transform .15s; margin-left: 4px; opacity: 0; width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .tab-el:hover .tab-folder { opacity: .6; }
+    .tab-el .tab-folder:hover { opacity: 1; transform: scale(1.1); }
+    .tab-el .tab-close { font-size: 14px; cursor: pointer; margin-left: 4px; opacity: 0; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; border-radius: 3px; transition: opacity .15s, background .15s, transform .15s; flex-shrink: 0; }
+    .tab-el:hover .tab-close { opacity: .6; }
+    .tab-el .tab-close:hover { opacity: 1; background: #ff5555; color: #fff; transform: scale(1.15); }
+    
+    .tab-ghost { position: fixed; pointer-events: none; z-index: 9999; opacity: .8; background: #222; border: 1px solid #0078d4; padding: 0 14px; font-size: 12px; display: flex; align-items: center; gap: 8px; height: var(--toolbar-h); border-radius: 4px; font-family: var(--font-mono); }
+    
+    .toolbar-btn { padding: 6px; border-radius: 4px; color: #808080; transition: background .15s, color .15s; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; background: none; border: none; flex-shrink: 0; line-height: 1; pointer-events: auto; }
+    .toolbar-btn svg { pointer-events: none; }
+    .toolbar-btn:hover:not(:disabled) { background: #1a1a1a; color: #e0e0e0; }
+    .toolbar-btn:disabled { opacity: .3; cursor: not-allowed; }
+    
+    .separator { width: 1px; height: 16px; background: #2a2a2a; margin: 0 4px; flex-shrink: 0; }
+    
+    .toolbar-actions {
+      display: flex;
+      gap: 2px;
+      align-items: center;
+      padding: 0 8px;
+      flex-shrink: 0;
+      height: 100%;
+    }
+    
+    .menu-anchor { position: relative; display: flex; align-items: center; height: 100%; }
+    
+    .settings-menu { position: absolute; right: 0; top: 100%; background: #111; border: 1px solid #2a2a2a; border-radius: 4px; padding: 4px 0; min-width: 160px; box-shadow: 0 4px 12px rgba(0,0,0,.5); z-index: 2000; opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .15s ease, transform .15s ease, visibility .15s; transform: translateY(-8px); }
+    .settings-menu.show { opacity: 1; visibility: visible; pointer-events: auto; transform: translateY(0); }
+    .settings-item { padding: 8px 12px; cursor: pointer; transition: background .15s; display: flex; align-items: center; gap: 8px; font-size: 12px; }
+    .settings-item:hover { background: #1a1a1a; }
+    .settings-item svg { width: 14px; height: 14px; flex-shrink: 0; pointer-events: none; }
+    
+    .sidebar {
+      width: var(--sidebar-w);
+      flex: 0 0 var(--sidebar-w);
+      background: #111;
+      border-right: 1px solid #2a2a2a;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+      min-height: 0;
+      height: 100%;
+    }
+    .sidebar-header { padding: 8px 12px; border-bottom: 1px solid #2a2a2a; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; gap: 8px; min-height: 36px; }
+    .sidebar-title { font-size: 11px; font-weight: 600; text-transform: uppercase; color: #808080; }
+    .sidebar-actions { display: flex; gap: 4px; align-items: center; flex-shrink: 0; }
+    #save-folder-display { flex-shrink: 0; }
+    #file-list { flex: 1 1 auto; overflow-y: auto; overflow-x: hidden; padding: 8px; display: flex; flex-direction: column; gap: 4px; min-height: 0; }
+    .file-item { cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 6px 8px; font-size: 12px; border-radius: 4px; transition: background .15s; min-width: 0; }
+    .file-item:hover { background: #1a1a1a; }
+    .file-item-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+    .file-empty { font-size: 12px; color: #808080; text-align: center; padding: 32px 0; }
+    .save-folder-box { padding: 8px 12px; border-bottom: 1px solid #2a2a2a; background: rgba(26,26,26,.5); }
+    .save-folder-head { display: flex; align-items: center; gap: 6px; }
+    .save-folder-label { font-size: 10px; font-weight: 600; text-transform: uppercase; color: #808080; }
+    .save-folder-path { font-size: 12px; margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #resize-handle { position: absolute; right: 0; top: 0; bottom: 0; width: 4px; background: transparent; cursor: col-resize; z-index: 10; transition: background .15s; }
+    #resize-handle:hover, #resize-handle.active { background: #0078d4; }
+    
+    .editor-container {
+      flex: 1 1 auto;
+      display: flex;
+      flex-direction: row;
+      overflow: hidden;
+      min-width: 0;
+      min-height: 0;
+      height: 100%;
+      align-items: stretch;
+    }
+    #line-numbers {
+      width: 40px;
+      flex: 0 0 auto;
+      background: #0a0a0a;
+      border-right: 1px solid #2a2a2a;
+      font-family: var(--font-mono);
+      font-size: var(--font-size);
+      line-height: var(--line-height);
+      font-variant-ligatures: none;
+      letter-spacing: normal;
+      text-align: right;
+      padding: var(--editor-pad) 8px var(--editor-pad) 4px;
+      color: #4a4a4a;
+      user-select: none;
+      white-space: pre;
+      overflow: hidden;
+      height: 100%;
+      min-height: 0;
+      box-sizing: border-box;
+    }
+    .editor-wrapper {
+      position: relative;
+      flex: 1 1 auto;
+      overflow: hidden;
+      min-width: 0;
+      min-height: 0;
+      height: 100%;
+    }
+    #editor {
+      resize: none;
+      font-family: var(--font-mono);
+      font-size: var(--font-size);
+      line-height: var(--line-height);
+      font-variant-ligatures: none;
+      letter-spacing: normal;
+      width: 100%;
+      height: 100%;
+      background: transparent;
+      color: #e0e0e0;
+      border: none;
+      padding: var(--editor-pad);
+      margin: 0;
+      outline: none;
+      tab-size: 4;
+      position: relative;
+      z-index: 2;
+      caret-color: #e0e0e0;
+      overflow: auto;
+      white-space: pre;
+      box-sizing: border-box;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    #highlight-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      font-family: var(--font-mono);
+      font-size: var(--font-size);
+      line-height: var(--line-height);
+      font-variant-ligatures: none;
+      letter-spacing: normal;
+      padding: var(--editor-pad);
+      margin: 0;
+      color: #e0e0e0;
+      white-space: pre;
+      overflow: hidden;
+      pointer-events: none;
+      z-index: 1;
+      background: #0a0a0a;
+      tab-size: 4;
+      box-sizing: border-box;
+    }
+    
+    .scrollbar-thin::-webkit-scrollbar { width: 8px; height: 8px; }
+    .scrollbar-thin::-webkit-scrollbar-track { background: #111; }
+    .scrollbar-thin::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 4px; }
+    .scrollbar-thin::-webkit-scrollbar-thumb:hover { background: #3a3a3a; }
+    
+    .find-replace input { background: #111; border: 1px solid #2a2a2a; color: #e0e0e0; padding: 4px 8px; font: 12px var(--font-mono); border-radius: 3px; outline: none; width: 180px; }
+    .find-replace input:focus { border-color: #0078d4; }
+    .find-replace button { padding: 4px 8px; background: #222; border: 1px solid #2a2a2a; color: #e0e0e0; border-radius: 3px; font-size: 11px; transition: background .15s; cursor: pointer; font-family: inherit; }
+    .find-replace button:hover { background: #2a2a2a; }
+    
+    #term-list {
+      width: 180px;
+      flex: 0 0 180px;
+      background: #111;
+      border-right: 1px solid #2a2a2a;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-height: 0;
+      height: 100%;
+    }
+    #term-list-header {
+      padding: 6px 10px;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: #808080;
+      border-bottom: 1px solid #2a2a2a;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+      min-height: 30px;
+    }
+    #term-items { flex: 1 1 auto; overflow-y: auto; min-height: 0; }
+    .term-item { padding: 8px 10px; cursor: pointer; border-left: 2px solid transparent; font-size: 11px; display: flex; flex-direction: column; gap: 2px; transition: background .12s; }
+    .term-item:hover { background: #1a1a1a; }
+    .term-item.active { background: #1a1a1a; border-left-color: #0078d4; }
+    .term-item .term-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #e0e0e0; }
+    .term-item .term-meta { font-size: 10px; color: #808080; display: flex; gap: 6px; align-items: center; }
+    .term-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+    .term-dot.running { background: #3fb950; box-shadow: 0 0 6px #3fb950; }
+    .term-dot.done { background: #0078d4; }
+    .term-dot.error, .term-dot.timeout { background: #ff5555; }
+    .term-dot.stopped { background: #d19a66; }
+    #term-main {
+      flex: 1 1 auto;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      min-height: 0;
+      height: 100%;
+      overflow: hidden;
+    }
+    #term-toolbar {
+      padding: 6px 10px;
+      background: #1a1a1a;
+      border-bottom: 1px solid #2a2a2a;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+      min-height: 30px;
+    }
+    .term-title { font-size: 12px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+    .term-actions { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+    #term-output {
+      flex: 1 1 auto;
+      padding: 10px 12px;
+      overflow-y: auto;
+      min-height: 0;
+      font-size: 12px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      font-family: var(--font-mono);
+      color: #d4d4d4;
+    }
+    
+    .status-left { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .status-right { display: flex; gap: 16px; flex-shrink: 0; align-items: center; }
+    .status-click { cursor: pointer; }
+    .saved-indicator { opacity: 0; transition: opacity .3s; color: #0078d4; font-weight: 600; }
+    .saved-indicator.show { opacity: 1; }
+    
+    .rename-input { background: #222; color: #e0e0e0; font: 11px var(--font-mono); padding: 0 4px; border: 1px solid #0078d4; border-radius: 2px; outline: none; width: 140px; height: 20px; }
+    
+    .hl-keyword { color: #c678dd; }
+    .hl-string { color: #98c379; }
+    .hl-number { color: #d19a66; }
+    .hl-comment { color: #5c6370; font-style: italic; }
+    .hl-function { color: #61afef; }
+    .hl-variable { color: #e06c75; }
+    .hl-operator { color: #56b6c2; }
+    .hl-property { color: #e5c07b; }
   </style>
 </head>
 <body>
-  <div style="display:flex;height:36px;background:#111;border-bottom:1px solid #2a2a2a;user-select:none">
-    <div id="tabs-container" style="flex:1;overflow-x:auto;display:flex" class="scrollbar-thin"></div>
-    <div style="width:1px;height:20px;background:#2a2a2a;margin:auto 4px"></div>
-    <div style="display:flex;gap:2px;align-items:center;padding:0 8px">
-      <button onclick="undo()" class="toolbar-btn" title="Desfazer (Ctrl+Z)">
+  <div class="toolbar">
+    <div id="tabs-container" class="scrollbar-thin"></div>
+    <div class="separator"></div>
+    <div class="toolbar-actions">
+      <button type="button" data-action="undo" class="toolbar-btn" data-i18n="undo" title="Desfazer (Ctrl+Z)">
         <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
       </button>
-      <button onclick="redo()" class="toolbar-btn" title="Refazer (Ctrl+Y)">
+      <button type="button" data-action="redo" class="toolbar-btn" data-i18n="redo" title="Refazer (Ctrl+Y)">
         <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 10H11a8 8 0 00-8 8v2m18-10l-6 6m6-6l-6-6"/></svg>
       </button>
-      <div style="width:1px;height:16px;background:#2a2a2a;margin:0 4px"></div>
-      <button onclick="cutText()" class="toolbar-btn" title="Recortar (Ctrl+X)">
+      <div class="separator"></div>
+      <button type="button" data-action="cut" class="toolbar-btn" data-i18n="cut" title="Recortar (Ctrl+X)">
         <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758a3 3 0 10-4.243 4.243 3 3 0 004.243-4.243zm0-5.758a3 3 0 10-4.243-4.243 3 3 0 004.243 4.243z"/></svg>
       </button>
-      <button onclick="copyText()" class="toolbar-btn" title="Copiar (Ctrl+C)">
+      <button type="button" data-action="copy" class="toolbar-btn" data-i18n="copy" title="Copiar (Ctrl+C)">
         <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
       </button>
-      <button onclick="pasteText()" class="toolbar-btn" title="Colar (Ctrl+V)">
+      <button type="button" data-action="paste" class="toolbar-btn" data-i18n="paste" title="Colar (Ctrl+V)">
         <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
       </button>
-      <div style="width:1px;height:16px;background:#2a2a2a;margin:0 4px"></div>
-      <button id="exec-btn" onclick="executeCurrent()" disabled class="toolbar-btn" title="Executar">
+      <button type="button" data-action="save-as" data-i18n="save_as" class="toolbar-btn" title="Salvar Como (Ctrl+Shift+S)">
+        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/><circle cx="17" cy="17" r="3" fill="currentColor"/></svg>
+      </button>
+      <div class="separator"></div>
+      <button type="button" id="exec-btn" data-action="execute" data-i18n="execute" disabled class="toolbar-btn" title="Executar">
         <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/></svg>
       </button>
-      <button id="stop-btn" onclick="stopExecution()" class="toolbar-btn" title="Parar" style="display:none">
+      <button type="button" id="stop-btn" data-action="stop" data-i18n="stop" class="toolbar-btn" title="Parar terminal ativo" hidden>
         <svg width="14" height="14" fill="#ff5555" viewBox="0 0 20 20"><rect x="4" y="4" width="12" height="12" rx="1"/></svg>
       </button>
-      <div style="width:1px;height:16px;background:#2a2a2a;margin:0 4px"></div>
-      <div style="position:relative">
-        <button onclick="toggleHistory()" class="toolbar-btn" title="Histórico">
+      <button type="button" data-action="toggle-terminal" data-i18n="show_terminals" class="toolbar-btn" title="Mostrar/Ocultar terminais">
+        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+      </button>
+      <div class="separator"></div>
+      <div class="menu-anchor">
+        <button type="button" data-action="history" data-i18n="history" class="toolbar-btn" title="Histórico">
           <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
         </button>
         <div id="history-menu" class="settings-menu"></div>
       </div>
-      <div style="position:relative">
-        <button onclick="toggleSettings()" class="toolbar-btn" title="Configurações">
+      <div class="menu-anchor">
+        <button type="button" data-action="settings" data-i18n="settings" class="toolbar-btn" title="Configurações">
           <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
         </button>
         <div id="settings-menu" class="settings-menu">
-          <div class="settings-item" onclick="toggleLineNumbers()">
+          <div class="settings-item" data-action="toggle-line-numbers">
             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"/></svg>
-            <span>Números de linha</span>
+            <span data-i18n="line_numbers">Números de linha</span>
           </div>
-          <div class="settings-item" onclick="toggleWordWrap()">
+          <div class="settings-item" data-action="toggle-word-wrap">
             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"/></svg>
-            <span>Quebra de linha</span>
+            <span data-i18n="word_wrap">Quebra de linha</span>
           </div>
-          <div class="settings-item" onclick="changeFontSize()">
+          <div class="settings-item" data-action="change-font-size">
             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
-            <span>Tamanho da fonte</span>
+            <span data-i18n="font_size">Tamanho da fonte</span>
           </div>
-          <div class="settings-item" onclick="toggleHighlighting()">
+          <div class="settings-item" data-action="toggle-highlighting">
             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/></svg>
-            <span>Destacar sintaxe</span>
+            <span data-i18n="highlighting">Destacar sintaxe</span>
+          </div>
+          <div class="settings-item" data-action="toggle-auto-save">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span data-i18n="auto_save">Auto-save</span>
+          </div>
+          <div class="settings-item" data-action="reset-all">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            <span>Resetar tudo</span>
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <div id="find-replace">
+  <div class="find-replace">
     <input id="find-input" type="text" placeholder="Buscar...">
     <input id="replace-input" type="text" placeholder="Substituir...">
-    <button onclick="findNext()">Buscar</button>
-    <button onclick="replaceNext()">Substituir</button>
-    <button onclick="replaceAll()">Substituir Tudo</button>
-    <button onclick="toggleFindReplace()" style="margin-left:auto;opacity:.6">✕</button>
+    <button type="button" data-action="find-next">Buscar</button>
+    <button type="button" data-action="replace-one">Substituir</button>
+    <button type="button" data-action="replace-all">Substituir Tudo</button>
+    <button type="button" data-action="close-find" style="margin-left:auto;opacity:.6">✕</button>
   </div>
 
-  <div style="display:flex;height:calc(100vh - 36px - 24px)">
-    <div id="sidebar" style="width:240px;background:#111;border-right:1px solid #2a2a2a;display:flex;flex-direction:column;overflow:hidden;position:relative">
-      <div style="padding:8px 12px;border-bottom:1px solid #2a2a2a;display:flex;justify-content:space-between;align-items:center">
-        <span style="font-size:11px;font-weight:600;text-transform:uppercase;color:#808080">Explorer</span>
-        <div style="display:flex;gap:4px">
-          <button onclick="pickGlobalSaveFolder()" class="toolbar-btn" title="Definir pasta de salvamento">
+  <div class="main-area">
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <span class="sidebar-title">Explorer</span>
+        <div class="sidebar-actions">
+          <button type="button" data-action="pick-save-folder" class="toolbar-btn" title="Definir pasta de salvamento">
             <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
           </button>
-          <button onclick="openFolder()" class="toolbar-btn" title="Abrir pasta">
+          <button type="button" data-action="open-folder" class="toolbar-btn" title="Abrir pasta">
             <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+          </button>
+          <button type="button" data-action="close-folder" class="toolbar-btn" title="Fechar pasta">
+            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
           </button>
         </div>
       </div>
       <div id="save-folder-display"></div>
-      <div id="file-list" style="flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:4px" class="scrollbar-thin">
-        <div style="font-size:12px;color:#808080;text-align:center;padding:32px 0">Nenhuma pasta aberta</div>
+      <div id="file-list" class="scrollbar-thin">
+        <div class="file-empty">Nenhuma pasta aberta</div>
       </div>
       <div id="resize-handle"></div>
     </div>
 
-    <div style="flex:1;display:flex;overflow:hidden">
-      <div id="line-numbers" style="width:22px;background:#0a0a0a;border-right:1px solid #2a2a2a;font-size:14px;overflow:hidden;height:100%">1</div>
+    <div class="editor-container">
+      <div id="line-numbers">1</div>
       <div class="editor-wrapper">
         <div id="highlight-layer"></div>
-        <textarea id="editor" placeholder="Comece a digitar..." class="scrollbar-thin"></textarea>
+        <textarea id="editor" placeholder="Comece a digitar..." class="scrollbar-thin" spellcheck="false"></textarea>
       </div>
     </div>
   </div>
 
-  <div id="output-panel" style="height:144px;background:#111;border-top:1px solid #2a2a2a;display:none;flex-direction:column">
-    <div style="padding:8px 12px;background:#1a1a1a;border-bottom:1px solid #2a2a2a;display:flex;justify-content:space-between;align-items:center">
-      <span style="font-size:12px;font-weight:600">Saída</span>
-      <div style="display:flex;gap:8px;align-items:center">
-        <button onclick="clearOutput()" title="Limpar" style="color:#808080;transition:all .15s;padding:2px">
-          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-        </button>
-        <button onclick="toggleOutput()" title="Fechar" style="color:#808080;transition:all .15s">
-          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+  <div class="terminal-panel">
+    <div id="term-list">
+      <div id="term-list-header">
+        <span>Terminais</span>
+        <button type="button" data-action="clear-finished" class="toolbar-btn" title="Limpar finalizados" style="padding:2px">
+          <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
         </button>
       </div>
+      <div id="term-items" class="scrollbar-thin"></div>
     </div>
-    <div id="output-content" style="flex:1;padding:12px;overflow-y:auto;font-size:12px;line-height:1.5;white-space:pre-wrap" class="scrollbar-thin"></div>
+    <div id="term-main">
+      <div id="term-toolbar">
+        <span class="term-title" id="term-title">Nenhum terminal</span>
+        <div class="term-actions">
+          <button type="button" id="term-stop-btn" data-action="stop" class="toolbar-btn" title="Parar" hidden>
+            <svg width="12" height="12" fill="#ff5555" viewBox="0 0 20 20"><rect x="4" y="4" width="12" height="12" rx="1"/></svg>
+          </button>
+          <button type="button" data-action="clear-active" class="toolbar-btn" data-i18n="clear_terminal" title="Limpar terminal" style="padding:2px">
+            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+          </button>
+          <button type="button" data-action="toggle-terminal" class="toolbar-btn" data-i18n="minimize_panel" title="Minimizar painel" style="padding:2px">
+            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          </button>
+        </div>
+      </div>
+      <div id="term-output" class="scrollbar-thin"></div>
+    </div>
   </div>
 
-  <div style="height:24px;background:#111;border-top:1px solid #2a2a2a;display:flex;align-items:center;justify-content:space-between;padding:0 12px;font-size:12px;color:#808080">
-    <span id="status-message">Pronto</span>
-    <div style="display:flex;gap:16px">
+  <div class="status-bar">
+    <span id="status-message" class="status-left">Pronto</span>
+    <div class="status-right">
+      <span id="term-count" class="status-click" data-action="toggle-terminal" title="Terminais">0 terminais</span>
       <span id="saved-indicator" class="saved-indicator">Salvo</span>
       <span id="word-count">0 palavras</span>
       <span id="char-count">0 chars</span>
@@ -192,14 +547,101 @@
   </div>
 
   <script>
-    // Estado da aplicação
+    function saveSession() {
+      try {
+        const session = {
+          tabs: tabs.map(t => ({
+            title: t.title,
+            content: t.content,
+            path: t.path,
+            format: t.format,
+            isExecutable: t.isExecutable,
+            runtimeAvailable: t.runtimeAvailable,
+            dirty: t.dirty,
+            saveFolder: t.saveFolder
+          })),
+          activeTabId,
+          timestamp: Date.now()
+        };
+        localStorage.setItem('autunpad-session', JSON.stringify(session));
+      } catch (e) { }
+    }
+
+    function restoreSession() {
+      try {
+        const saved = localStorage.getItem('autunpad-session');
+        if (!saved) return false;
+        const session = JSON.parse(saved);
+        if (!session.tabs || !Array.isArray(session.tabs) || session.tabs.length === 0) return false;
+        
+        tabs = session.tabs.map(t => {
+          const tab = new Tab(t.id || Date.now() + Math.random(), t.title, t.content, t.path, t.format, t.isExecutable, t.runtimeAvailable);
+          tab.dirty = t.dirty || false;
+          tab.saveFolder = t.saveFolder;
+          return tab;
+        });
+        
+        activeTabId = session.activeTabId && tabs.find(t => t.id === session.activeTabId) 
+          ? session.activeTabId 
+          : tabs[0].id;
+        
+        return true;
+      } catch (e) {
+        return false;
+      }
+    }
+
     let tauriReady = false;
     let invoke = null;
     let pythonAvailable = null;
     let tabs = [], activeTabId = null, saveFolder = null, dedicatedFolder = null;
+    let terminals = [], activeTermId = null, termPollTimer = null;
+    let settings = { lineNumbers: true, wordWrap: false, fontSize: 14, highlighting: true, autoSave: false };
+    let dragState = null;
+    let isResizing = false;
+    let sessionSaveTimeout = null;
+    const i18n = {
+      'pt-BR': {
+        new_tab: 'Nova aba', open_file: 'Abrir arquivo', save: 'Salvar', save_as: 'Salvar como',
+        find: 'Localizar', replace: 'Substituir', settings: 'Configurações', history: 'Histórico',
+        undo: 'Desfazer', redo: 'Refazer', cut: 'Recortar', copy: 'Copiar', paste: 'Colar',
+        select_all: 'Selecionar tudo', execute: 'Executar', stop: 'Parar',
+        show_terminals: 'Mostrar/Ocultar terminais', no_tab: 'Nenhuma aba aberta',
+        waiting_init: 'Aguardando inicialização...', file_saved: 'Arquivo salvo', error: 'Erro',
+        terminals: 'terminais', run: 'em execução', minimize_panel: 'Minimizar painel',
+        clear_terminal: 'Limpar terminal', rerun: 'Reexecutar', remove_from_list: 'Remover da lista',
+        line_numbers: 'Números de linha', word_wrap: 'Quebra de linha', font_size: 'Tamanho da fonte',
+        highlighting: 'Destaque de sintaxe', auto_save: 'Auto-save', not_found: 'Não encontrado',
+        replacements_done: 'substituição(ões) feita(s)',
+      },
+      'en-US': {
+        new_tab: 'New tab', open_file: 'Open file', save: 'Save', save_as: 'Save as',
+        find: 'Find', replace: 'Replace', settings: 'Settings', history: 'History',
+        undo: 'Undo', redo: 'Redo', cut: 'Cut', copy: 'Copy', paste: 'Paste',
+        select_all: 'Select all', execute: 'Execute', stop: 'Stop',
+        show_terminals: 'Show/Hide terminals', no_tab: 'No tab open',
+        waiting_init: 'Waiting for initialization...', file_saved: 'File saved', error: 'Error',
+        terminals: 'terminals', run: 'running', minimize_panel: 'Minimize panel',
+        clear_terminal: 'Clear terminal', rerun: 'Re-run', remove_from_list: 'Remove from list',
+        line_numbers: 'Line numbers', word_wrap: 'Word wrap', font_size: 'Font size',
+        highlighting: 'Syntax highlighting', auto_save: 'Auto-save', not_found: 'Not found',
+        replacements_done: 'replacement(s) done',
+      }
+    };
+    let currentLocale = 'pt-BR';
+    function t(key) { return (i18n[currentLocale] || i18n['pt-BR'])[key] || key; }
+    function applyTranslations() {
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.dataset.i18n;
+        const txt = t(key);
+        if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') el.placeholder = txt;
+        else if (el.hasAttribute('title')) el.title = txt;
+        else el.textContent = txt;
+      });
+    }
 
-    class Tab{
-      constructor(id, title, content='', path=null, format='plaintext', isExecutable=false, runtimeAvailable=true) {
+    class Tab {
+      constructor(id, title, content = '', path = null, format = 'plaintext', isExecutable = false, runtimeAvailable = true) {
         this.id = id;
         this.title = title;
         this.content = content;
@@ -218,12 +660,10 @@
         const titleChanged = this.title !== this.originalTitle;
         const contentChanged = this.content !== this.originalContent;
         const formatChanged = this.format !== this.originalFormat;
-        
         return (hasContent && contentChanged) || titleChanged || formatChanged;
       }
     }
 
-    // Função auxiliar para verificar se Tauri está pronto
     function requireTauri() {
       if (!tauriReady || !invoke) {
         setStatus('Aguardando inicialização...');
@@ -235,15 +675,15 @@
     async function updateTabMetadataFromTitle(tab) {
       if (!tab) return;
       const ext = tab.title.split('.').pop().toLowerCase();
-      const formatMap = {md:'markdown',markdown:'markdown',rtf:'richtext',ps1:'script',bat:'script',cmd:'script',sh:'script',py:'script',exe:'script',json:'json',js:'plaintext',c:'plaintext',rs:'plaintext'};
+      const formatMap = { md: 'markdown', markdown: 'markdown', rtf: 'richtext', ps1: 'script', bat: 'script', cmd: 'script', sh: 'script', bash: 'script', py: 'script', exe: 'script', js: 'javascript', mjs: 'javascript', cjs: 'javascript', json: 'json', c: 'c', rs: 'rust', ts: 'javascript' };
       tab.format = formatMap[ext] || 'plaintext';
-      tab.isExecutable = ['ps1','bat','cmd','sh','py','exe'].includes(ext);
+      tab.isExecutable = ['ps1', 'bat', 'cmd', 'sh', 'bash', 'py', 'exe', 'js', 'mjs', 'cjs'].includes(ext);
       if (ext === 'py') {
         if (pythonAvailable === null && tauriReady) {
           try {
             const runtimes = await invoke('check_runtimes');
             pythonAvailable = runtimes.python;
-          } catch(e) { pythonAvailable = false; }
+          } catch (e) { pythonAvailable = false; }
         }
         tab.runtimeAvailable = pythonAvailable === true;
       } else {
@@ -251,182 +691,1587 @@
       }
     }
 
-    function newTab(){const id=Date.now(),tab=new Tab(id,'Sem Nome.txt'),idx=tabs.findIndex(t=>t.id===activeTabId);idx>=0?tabs.splice(idx+1,0,tab):tabs.push(tab);activeTabId=id;renderTabs();loadTabContent()}
+    function newTab() {
+      const id = Date.now();
+      const title = 'Sem Nome.txt';
+      const tab = new Tab(id, title, '');
+      const idx = tabs.findIndex(t => t.id === activeTabId);
+      idx >= 0 ? tabs.splice(idx + 1, 0, tab) : tabs.push(tab);
+      activeTabId = id;
+      renderTabs();
+      loadTabContent();
+    }
 
-    async function openFile(){if(!requireTauri())return;try{const r=await invoke('open_file');if(r){const id=Date.now(),tab=new Tab(id,r.title,r.content,r.path,r.format,r.is_executable,r.runtime_available);await updateTabMetadataFromTitle(tab);tabs.push(tab);activeTabId=id;renderTabs();loadTabContent();setStatus('Arquivo aberto')}}catch(e){setStatus('Erro: '+e)}}
-
-    async function saveFile(){if(!requireTauri())return;const tab=getActiveTab();if(!tab)return;try{let savePath=tab.path||undefined;if(savePath&&tab.title!==tab.originalTitle){const dir=savePath.substring(0,savePath.lastIndexOf('\\')>0?savePath.lastIndexOf('\\')+1:savePath.lastIndexOf('/')+1);savePath=dir+tab.title;tab.path=null}const r=await invoke('save_file',{path:savePath,suggestedName:tab.title,content:tab.content});if(r){tab.path=r.path;tab.title=r.title;tab.format=r.format;tab.isExecutable=r.is_executable;tab.runtimeAvailable=r.runtime_available;tab.dirty=false;tab.originalTitle=tab.title;tab.originalContent=tab.content;tab.originalFormat=tab.format;await updateTabMetadataFromTitle(tab);saveToHistory(tab.title,tab.content);renderTabs();updateToolbar();updateFileType();updateHighlighting();const editor=document.getElementById('editor');const hl=document.getElementById('highlight-layer');if(editor&&hl){hl.scrollTop=editor.scrollTop;editor.scrollTop=hl.scrollTop}setStatus('Arquivo salvo')}}catch(e){if(e!=='Cancelado')setStatus('Erro: '+e)}}
-
-
-    // Histórico/Cache system
-    function saveToHistory(title,content){if(!content||!content.trim())return;const history=JSON.parse(localStorage.getItem('autunpad-history')||'[]');const entry={title,content,timestamp:Date.now()};history.unshift(entry);if(history.length>5)history.pop();localStorage.setItem('autunpad-history',JSON.stringify(history))}
-    
-    function toggleHistory(){const menu=document.getElementById('history-menu');if(!menu)return;menu.classList.toggle('show');if(menu.classList.contains('show')){const history=JSON.parse(localStorage.getItem('autunpad-history')||'[]');const items=history.map((h,i)=>{const date=new Date(h.timestamp).toLocaleString('pt-BR');return '<div class="settings-item" onclick="loadFromHistory('+i+')"><div><div style="font-weight:600">'+h.title+'</div><div style="font-size:10px;color:#808080">'+date+'</div></div></div>'}).join('');const clearBtn='<div class="settings-item" onclick="clearHistory()"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg><span>Limpar histórico</span></div>';menu.innerHTML=items+(items?clearBtn:'<div class="settings-item" style="color:#808080">Histórico vazio</div>')}}
-    
-    function loadFromHistory(index){const history=JSON.parse(localStorage.getItem('autunpad-history')||'[]');const entry=history[index];if(!entry)return;const id=Date.now(),tab=new Tab(id,entry.title,entry.content);tabs.push(tab);activeTabId=id;renderTabs();loadTabContent();document.getElementById('history-menu').classList.remove('show');setStatus('Texto carregado do histórico')}
-    
-    function clearHistory(){localStorage.removeItem('autunpad-history');document.getElementById('history-menu').classList.remove('show');setStatus('Histórico limpo')}
-    async function openFolder(){if(!requireTauri())return;const unsavedTabs=tabs.filter(t=>!t.path&&t.content.trim());if(unsavedTabs.length>0){const shouldSave=confirm(`Você tem ${unsavedTabs.length} aba(s) sem salvar. Deseja salvar antes de abrir a pasta?`);if(shouldSave)for(const tab of unsavedTabs){const orig=activeTabId;activeTabId=tab.id;await saveFile();activeTabId=orig}}try{const r=await invoke('open_folder');if(r){dedicatedFolder=r.folder;if(!saveFolder)saveFolder=r.folder;renderFileList(r.files);renderSaveFolder();setStatus('Pasta aberta')}}catch(e){setStatus('Erro: '+e)}}
-
-    async function pickGlobalSaveFolder(){if(!requireTauri())return;try{const r=await invoke('pick_save_folder',{parent:dedicatedFolder||undefined});if(r&&r.path){if(dedicatedFolder&&!isInsideFolder(r.path,dedicatedFolder)){setStatus('Deve salvar dentro da pasta dedicada');return}saveFolder=r.path;renderSaveFolder();setStatus('Pasta de salvamento definida')}else if(r===null)setStatus('Deve salvar dentro da pasta dedicada')}catch(e){setStatus('Erro: '+e)}}
-
-    async function pickTabSaveFolder(tabId,ev){ev.stopPropagation();if(!requireTauri())return;const tab=tabs.find(t=>t.id===tabId);if(!tab)return;try{const r=await invoke('pick_save_folder',{parent:dedicatedFolder||undefined});if(r&&r.path){if(dedicatedFolder&&!isInsideFolder(r.path,dedicatedFolder)){setStatus('Deve salvar dentro da pasta dedicada');return}tab.saveFolder=r.path;tab.dirty=true;renderTabs();setStatus('Pasta da aba definida')}else if(r===null)setStatus('Deve salvar dentro da pasta dedicada')}catch(e){setStatus('Erro: '+e)}}
-
-    function isInsideFolder(path,folder){const p=path.replace(/\\/g,'/').toLowerCase(),f=folder.replace(/\\/g,'/').toLowerCase().replace(/\/+$/,'');return p.startsWith(f+'/')}
-
-    function renderSaveFolder(){const el=document.getElementById('save-folder-display'),folder=saveFolder||dedicatedFolder;if(folder){const name=folder.split(/[\\/]/).pop();el.innerHTML=`<div style="padding:8px 12px;border-bottom:1px solid #2a2a2a;background:rgba(26,26,26,.5)"><div style="display:flex;align-items:center;gap:6px"><svg width="12" height="12" fill="none" stroke="#0078d4" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg><span style="font-size:10px;font-weight:600;text-transform:uppercase;color:#808080">Salvar em</span></div><div style="font-size:12px;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${folder}">${name}</div></div>`}else el.innerHTML=''}
-
-    async function openSidebarFile(path){if(!requireTauri())return;try{const r=await invoke('open_file_by_path',{path});if(r){const id=Date.now(),tab=new Tab(id,r.title,r.content,r.path,r.format,r.is_executable,r.runtime_available);tabs.push(tab);activeTabId=id;renderTabs();loadTabContent()}}catch(e){setStatus('Erro: '+e)}}
-
-    function updateWordCount(){const editor=document.getElementById('editor');if(!editor)return;const text=editor.value;const words=text.trim()?text.trim().split(/\s+/).length:0;const chars=text.length;document.getElementById('word-count').textContent=words+' palavra'+(words!==1?'s':'');document.getElementById('char-count').textContent=chars+' char'+(chars!==1?'s':'')}
-
-    function showSavedIndicator(){const indicator=document.getElementById('saved-indicator');if(!indicator)return;indicator.classList.add('show');setTimeout(()=>indicator.classList.remove('show'),1500)}
-
-    function openFindReplace(){const panel=document.getElementById('find-replace');if(!panel)return;panel.classList.add('show');const input=document.getElementById('find-input');if(input)input.focus()}
-    function closeFindReplace(){const panel=document.getElementById('find-replace');if(panel)panel.classList.remove('show')}
-
-    function findNext(reverse=false){const editor=document.getElementById('editor');const findInput=document.getElementById('find-input');if(!editor||!findInput)return;const searchTerm=findInput.value;if(!searchTerm)return;const text=editor.value;const startPos=reverse?editor.selectionStart:editor.selectionEnd;let index;
-    if(reverse){index=text.lastIndexOf(searchTerm,startPos-searchTerm.length);if(index===-1&&startPos>0)index=text.lastIndexOf(searchTerm,text.length)}else{index=text.indexOf(searchTerm,startPos);if(index===-1)index=text.indexOf(searchTerm,0)}
-    if(index!==-1){editor.focus();editor.setSelectionRange(index,index+searchTerm.length)}else{setStatus('Não encontrado')}}
-
-    function replaceOne(){const editor=document.getElementById('editor');const findInput=document.getElementById('find-input');const replaceInput=document.getElementById('replace-input');if(!editor||!findInput||!replaceInput)return;const searchTerm=findInput.value;const replaceTerm=replaceInput.value;if(!searchTerm)return;const start=editor.selectionStart;const end=editor.selectionEnd;const selectedText=editor.value.substring(start,end);if(selectedText===searchTerm){editor.value=editor.value.substring(0,start)+replaceTerm+editor.value.substring(end);editor.dispatchEvent(new Event('input'));const newIndex=start+replaceTerm.length;editor.setSelectionRange(newIndex,newIndex);findNext(false)}else{findNext(false)}}
-
-    function replaceAll(){const editor=document.getElementById('editor');const findInput=document.getElementById('find-input');const replaceInput=document.getElementById('replace-input');if(!editor||!findInput||!replaceInput)return;const searchTerm=findInput.value;const replaceTerm=replaceInput.value;if(!searchTerm)return;const count=(editor.value.match(new RegExp(searchTerm.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'g'))||[]).length;editor.value=editor.value.split(searchTerm).join(replaceTerm);editor.dispatchEvent(new Event('input'));setStatus(count+' substituição(ões) feita(s)')}
-
-    async function executeCurrent(){if(!requireTauri())return;const tab=getActiveTab();if(!tab||!tab.isExecutable||!tab.runtimeAvailable){tab&&!tab.runtimeAvailable?setStatus('Runtime não disponível'):setStatus('Arquivo não executável');return}if(!tab.path||tab.dirty){await saveFile();showSavedIndicator();if(!tab.path)return}try{setStatus('Executando...');document.getElementById('exec-btn').style.display='none';document.getElementById('stop-btn').style.display='flex';const r=await invoke('execute_file',{path:tab.path});document.getElementById('output-content').textContent=r.replace(/^[A-Z]:\\[^>]*>/gm,'>');document.getElementById('output-panel').style.display='flex';setStatus('Execução concluída')}catch(e){document.getElementById('output-content').textContent='Erro: '+e;document.getElementById('output-panel').style.display='flex';setStatus('Erro na execução')}finally{document.getElementById('exec-btn').style.display='flex';document.getElementById('stop-btn').style.display='none'}}
-
-    async function stopExecution(){if(!requireTauri())return;try{await invoke('stop_execution');setStatus('Execução parada')}catch(e){setStatus('Erro: '+e)}}
-
-    function closeTab(id,ev){ev.stopPropagation();if(tabs.length<=1)return;const tab=tabs.find(t=>t.id===id);if(tab&&tab.dirty){if(!confirm('A aba "'+tab.title+'" tem alterações não salvas. Fechar mesmo assim?'))return}const idx=tabs.findIndex(t=>t.id===id);tabs.splice(idx,1);if(activeTabId===id)activeTabId=tabs[Math.max(0,idx-1)].id;renderTabs();loadTabContent()}
-
-    function switchTab(id){saveCurrentContent();activeTabId=id;renderTabs();loadTabContent()}
-
-    function getActiveTab(){return tabs.find(t=>t.id===activeTabId)}
-
-    function loadTabContent(){const tab=getActiveTab();if(!tab)return;document.getElementById('editor').value=tab.content;updateLineNumbers();updateToolbar();updateStatusInfo();updateFileType();updateHighlighting();updateWordCount();document.getElementById('output-content').textContent='';document.getElementById('output-panel').style.display='none'}
-
-    function saveCurrentContent(){const tab=getActiveTab();if(!tab)return;const c=document.getElementById('editor').value;if(c!==tab.content){tab.content=c;tab.dirty=true}}
-
-    function renderTabs(){const ct=document.getElementById('tabs-container');if(!ct)return;ct.innerHTML='';ct.addEventListener('dragover',(e)=>{e.preventDefault();e.dataTransfer.dropEffect='move'});ct.addEventListener('drop',(e)=>{e.preventDefault()});tabs.forEach((tab,index)=>{const el=document.createElement('div');el.className='tab-el'+(tab.id===activeTabId?' tab-active':' tab-inactive');el.draggable=true;el.dataset.tabIndex=index;el.onclick=(e)=>{if(e.target.classList.contains('tab-name'))return;switchTab(tab.id)};el.addEventListener('dragstart',(e)=>{el.classList.add('dragging');e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',String(index))});el.addEventListener('dragend',()=>{el.classList.remove('dragging');ct.querySelectorAll('.tab-el').forEach(t=>t.classList.remove('drag-over-left','drag-over-right'))});el.addEventListener('dragover',(e)=>{e.preventDefault();e.dataTransfer.dropEffect='move';const rect=el.getBoundingClientRect();ct.querySelectorAll('.tab-el').forEach(t=>t.classList.remove('drag-over-left','drag-over-right'));if(e.clientX<rect.left+rect.width/2){el.classList.add('drag-over-left')}else{el.classList.add('drag-over-right')}});el.addEventListener('dragleave',()=>{el.classList.remove('drag-over-left','drag-over-right')});el.addEventListener('drop',(e)=>{e.preventDefault();e.stopPropagation();const from=parseInt(e.dataTransfer.getData('text/plain'));const rect=el.getBoundingClientRect();let to=e.clientX<rect.left+rect.width/2?index:index+1;if(from<to)to--;if(from!==to){const[moved]=tabs.splice(from,1);tabs.splice(to,0,moved);renderTabs()}});const dirty=document.createElement('span');dirty.style.cssText='color:#0078d4;font-size:10px';dirty.textContent=tab.dirty?'*':'';const name=document.createElement('span');name.className='tab-name';name.textContent=tab.title;name.addEventListener('dblclick',(e)=>{e.stopPropagation();e.preventDefault();startRenameTab(tab.id,e)});const folder=document.createElement('button');folder.className='tab-folder';folder.title=tab.saveFolder?'Pasta: '+tab.saveFolder:'Escolher pasta';folder.innerHTML='<svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>';folder.onclick=e=>pickTabSaveFolder(tab.id,e);el.append(dirty,name,folder);const close=document.createElement('span');close.className='tab-close';close.textContent='\u00d7';close.onclick=e=>closeTab(tab.id,e);el.append(close);ct.appendChild(el)});const add=document.createElement('button');add.style.cssText='padding:0 12px;color:#808080;transition:all .15s;flex-shrink:0;display:flex;align-items:center;height:100%';add.onclick=newTab;add.title='Nova aba (Ctrl+N)';add.innerHTML='<svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>';ct.appendChild(add);
-    // Scroll para a aba ativa
-    setTimeout(()=>{const activeEl=ct.querySelector('.tab-active');if(activeEl)activeEl.scrollIntoView({behavior:'smooth',block:'nearest',inline:'nearest'})},50)}
-
-    async function startRenameTab(id,ev){ev.stopPropagation();ev.preventDefault();const tab=tabs.find(t=>t.id===id);if(!tab)return;const span=ev.target;if(span.tagName!=='SPAN')return;const input=document.createElement('input');input.type='text';input.value=tab.title;input.className='rename-input';span.replaceWith(input);input.focus();input.select();let done=false;const finish=async()=>{if(done)return;done=true;const name=input.value.trim();if(name&&name!==tab.title){if(tauriReady&&invoke){try{const v=await invoke('validate_filename',{filename:name});if(v.valid){tab.title=name;tab.dirty=true;await updateTabMetadataFromTitle(tab);updateToolbar();updateHighlighting();updateFileType()}else{setStatus('Nome inválido: '+(v.error||''))}}catch(e){tab.title=name;tab.dirty=true;await updateTabMetadataFromTitle(tab);updateToolbar();updateHighlighting();updateFileType()}}else{const validLocal=/^[^<>:"/\\|?*]+$/.test(name)&&!name.endsWith('.')&&!name.endsWith(' ');if(validLocal){tab.title=name;tab.dirty=true;await updateTabMetadataFromTitle(tab);updateToolbar();updateHighlighting();updateFileType()}else{setStatus('Nome inválido')}}}renderTabs()};input.onblur=finish;input.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();input.blur()}else if(e.key==='Escape'){done=true;renderTabs()}}}
-
-    function renderFileList(files){const ct=document.getElementById('file-list');ct.innerHTML='';files.forEach(file=>{const el=document.createElement('div');el.style.cssText='cursor:pointer;display:flex;align-items:center;gap:8px;padding:6px 8px;font-size:12px;border-radius:4px;transition:all .15s';el.onmouseover=()=>el.style.background='#1a1a1a';el.onmouseout=()=>el.style.background='';el.onclick=()=>openSidebarFile(file.path);const icon=file.is_executable?'<svg width="12" height="12" fill="#0078d4" viewBox="0 0 20 20"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/></svg>':'<svg width="12" height="12" fill="none" stroke="#808080" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>';el.innerHTML=icon+'<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+file.name+'</span>';ct.appendChild(el)})}
-
-    function updateLineNumbers(){const ed=document.getElementById('editor'),ln=document.getElementById('line-numbers');if(!ed||!ln)return;const count=Math.max(ed.value.split('\n').length,1);const digits=Math.max(String(count).length,2);const width=Math.max(22,(digits*9)+10);ln.style.width=width+'px';let nums='';for(let i=1;i<=count;i++)nums+=i+'\n';ln.textContent=nums;ln.scrollTop=ed.scrollTop}
-
-    function toggleOutput(){const p=document.getElementById('output-panel');p.style.display=p.style.display==='flex'?'none':'flex'}
-function clearOutput(){document.getElementById('output-content').textContent='';document.getElementById('output-panel').style.display='none'}
-
-    // Ferramentas padrão
-    function undo(){document.execCommand('undo')}
-    function redo(){document.execCommand('redo')}
-    function cutText(){document.execCommand('cut')}
-    function copyText(){document.execCommand('copy')}
-    function pasteText(){navigator.clipboard.readText().then(text=>{const editor=document.getElementById('editor');const start=editor.selectionStart;const end=editor.selectionEnd;editor.value=editor.value.substring(0,start)+text+editor.value.substring(end);editor.selectionStart=editor.selectionEnd=start+text.length;editor.dispatchEvent(new Event('input'))})}
-
-    // Menu de configurações
-    function toggleSettings(){const menu=document.getElementById('settings-menu');menu.classList.toggle('show')}
-    document.addEventListener('click',e=>{const menu=document.getElementById('settings-menu');if(menu&&!e.target.closest('.settings-menu')&&!e.target.closest('[onclick="toggleSettings()"]'))menu.classList.remove('show')})
-
-    // Configurações
-    let settings={lineNumbers:true,wordWrap:false,fontSize:14,highlighting:true}
-    
-    function loadSettings(){try{const saved=localStorage.getItem('autunpad-settings');if(saved)settings={...settings,...JSON.parse(saved)}}catch(e){}}
-    function saveSettings(){try{localStorage.setItem('autunpad-settings',JSON.stringify(settings))}catch(e){}}
-    function applySettings(){const editor=document.getElementById('editor');const hl=document.getElementById('highlight-layer');const ln=document.getElementById('line-numbers');const fs=settings.fontSize+'px',lh=(settings.fontSize*1.7)+'px',ws=settings.wordWrap?'pre-wrap':'pre',ow=settings.wordWrap?'break-word':'normal';if(editor){editor.style.fontSize=fs;editor.style.lineHeight=lh;editor.style.whiteSpace=ws;editor.style.overflowWrap=ow}if(hl){hl.style.fontSize=fs;hl.style.lineHeight=lh;hl.style.whiteSpace=ws;hl.style.overflowWrap=ow}if(ln){ln.style.display=settings.lineNumbers?'block':'none';ln.style.fontSize=fs;ln.style.lineHeight=lh}updateLineNumbers()}
-    
-    function toggleLineNumbers(){settings.lineNumbers=!settings.lineNumbers;saveSettings();applySettings()}
-    function toggleWordWrap(){settings.wordWrap=!settings.wordWrap;saveSettings();applySettings()}
-    function changeFontSize(){const sizes=[12,14,16,18,20];const current=sizes.indexOf(settings.fontSize);const next=(current+1)%sizes.length;settings.fontSize=sizes[next];saveSettings();applySettings();setStatus('Fonte: '+settings.fontSize+'px')}
-    function toggleHighlighting(){settings.highlighting=!settings.highlighting;saveSettings();updateHighlighting();setStatus('Destaque: '+(settings.highlighting?'ativado':'desativado'))}
-
-    // Syntax highlighting custom (regex-based)
-    function highlightCode(code,lang){if(!settings.highlighting)return code;const patterns={javascript:[[/\/\/.*/g,'comment'],[/\/\*[\s\S]*?\*\//g,'comment'],[/".*?"|'.*?'|`.*?`/g,'string'],[/\b(function|return|var|let|const|if|else|for|while|do|switch|case|break|continue|try|catch|finally|throw|new|delete|typeof|instanceof|in|of|class|extends|import|export|from|default|async|await)\b/g,'keyword'],[/\b(true|false|null|undefined|NaN|Infinity)\b/g,'keyword'],[/\b([0-9]+\.?[0-9]*|\.[0-9]+)\b/g,'number'],[/([a-zA-Z_$][a-zA-Z0-9_$]*)\s*(?=\()/g,'function'],[/(=>|\+\+|--|&&|\|\||===|!==|==|!=|<=|>=)/g,'operator']],python:[[/#.*/g,'comment'],[/"""[\s\S]*?"""|'''[\s\S]*?'''/g,'string'],[/".*?"|'.*?'/g,'string'],[/\b(def|class|if|elif|else|for|while|try|except|finally|with|as|import|from|return|yield|raise|pass|break|continue|and|or|not|in|is|lambda|global|nonlocal|assert|del|print)\b/g,'keyword'],[/\b(True|False|None)\b/g,'keyword'],[/\b([0-9]+\.?[0-9]*|\.[0-9]+)\b/g,'number'],[/([a-zA-Z_][a-zA-Z0-9_]*)\s*(?=\()/g,'function']],markdown:[[/^#.*$/gm,'keyword'],[/^##.*$/gm,'keyword'],[/^###.*$/gm,'keyword'],[/\*\*.*?\*\*|__.*?__/g,'string'],[/\*.*?\*|_.*?_/g,'property'],[/\[.*?\]\(.*?\)/g,'variable'],[/`.*?`/g,'operator'],[/^\s*[-*+]\s/gm,'function']],json:[[/".*?"(?=\s*:)/g,'property'],[/".*?"/g,'string'],[/\b(true|false|null)\b/g,'keyword'],[/\b([0-9]+\.?[0-9]*|\.[0-9]+)\b/g,'number']],c:[[/\/\/.*/g,'comment'],[/\/\*[\s\S]*?\*\//g,'comment'],[/".*?"/g,'string'],[/\b(int|char|float|double|void|long|short|unsigned|signed|const|static|extern|auto|register|sizeof|struct|union|enum|typedef|if|else|for|while|do|switch|case|break|continue|return|goto|default)\b/g,'keyword'],[/\b([0-9]+\.?[0-9]*|\.[0-9]+)\b/g,'number'],[/\b([A-Z_][A-Z0-9_]*)\b/g,'variable'],[/([a-zA-Z_][a-zA-Z0-9_]*)\s*(?=\()/g,'function']],rust:[[/\/\/.*/g,'comment'],[/\/\*[\s\S]*?\*\//g,'comment'],[/".*?"/g,'string'],[/\b(fn|let|mut|const|if|else|for|while|loop|match|return|break|continue|struct|enum|impl|trait|pub|use|mod|crate|self|super|where|async|await|move|ref|type|static|unsafe|extern)\b/g,'keyword'],[/\b(true|false|None|Some|Ok|Err)\b/g,'keyword'],[/\b([0-9]+\.?[0-9]*|\.[0-9]+)\b/g,'number'],[/\b([A-Z][a-zA-Z0-9]*)\b/g,'function'],[/([a-zA-Z_][a-zA-Z0-9_]*)\s*(?=\()/g,'function']],powershell:[[/#.*/g,'comment'],[/".*?"|'.*?'/g,'string'],[/\b(function|param|begin|process|end|if|else|elseif|switch|while|for|foreach|try|catch|finally|return|break|continue|throw|trap|exit)\b/g,'keyword'],[/\$[a-zA-Z_][a-zA-Z0-9_]*/g,'variable'],[/\b([0-9]+\.?[0-9]*|\.[0-9]+)\b/g,'number'],[/([a-zA-Z_][a-zA-Z0-9_-]*)\s*(?=\()/g,'function']],batch:[[/REM\s.*/gi,'comment'],[/::.*/g,'comment'],[/".*?"/g,'string'],[/\b(set|echo|call|goto|if|else|for|pause|cls|dir|cd|md|rd|del|copy|move|ren|type|start)\b/gi,'keyword'],[/%[a-zA-Z0-9_]+%/g,'variable'],[/\b([0-9]+\.?[0-9]*|\.[0-9]+)\b/g,'number']],powershell:[[/#.*/g,'comment'],[/<#[\s\S]*?#>/g,'comment'],[/".*?"|'.*?'/g,'string'],[/\$[a-zA-Z_][a-zA-Z0-9_]*/g,'variable'],[/\b(function|if|else|elseif|for|foreach|while|do|switch|case|default|break|continue|return|try|catch|finally|throw|param|begin|process|end|in|filter|class|enum|using)\b/g,'keyword'],[/\b(Get|Set|New|Remove|Write|Read|Start|Stop|Test|Invoke|Import|Export|Convert|Select|Where|Sort|Measure|Group|Format|Out|Add|Clear|Copy|Move|Delete|Rename|Send|Receive|Open|Close|Enable|Disable)-[a-zA-Z]+\b/g,'function'],[/\$(true|false|null)\b/g,'keyword'],[/\b([0-9]+\.?[0-9]*|\.[0-9]+)\b/g,'number'],[/(-eq|-ne|-gt|-lt|-ge|-le|-like|-notlike|-match|-notmatch|-contains|-notcontains|-in|-notin|-replace|-is|-isnot|-as|-band|-bor|-bxor|-bnot|-and|-or|-not|-split|-join|-f)\b/g,'operator']],batch:[[/^::.*|\bREM\b.*/gim,'comment'],[/".*?"/g,'string'],[/%[a-zA-Z_][a-zA-Z0-9_]*%|%%[a-zA-Z]/g,'variable'],[/\b(if|else|for|in|do|goto|call|exit|echo|set|pause|cls|cd|md|rd|del|ren|copy|move|type|find|findstr|sort|more|tree|attrib|color|date|time|dir|mkdir|rmdir|title|ver|verify|vol|assoc|ftype|setlocal|endlocal|pushd|popd|shift|start|timeout|where|whoami|hostname|ipconfig|ping|net|nslookup|tracert|xcopy|robocopy)\b/gi,'keyword'],[/\b(errorlevel|exist|defined)\b/gi,'keyword'],[/:[a-zA-Z_][a-zA-Z0-9_]*/g,'function'],[/\b([0-9]+)\b/g,'number'],[/(==|!=|EQU|NEQ|LSS|LEQ|GTR|GEQ)/gi,'operator']]};const langPatterns=patterns[lang]||[];const tokens=[];langPatterns.forEach(([regex,cls])=>{const re=new RegExp(regex.source,regex.flags);let m;while((m=re.exec(code))!==null){tokens.push({start:m.index,end:m.index+m[0].length,cls,text:m[0]});if(m[0].length===0)re.lastIndex++}});tokens.sort((a,b)=>a.start-b.start||(b.end-b.start)-(a.end-a.start));const used=new Uint8Array(code.length);const valid=[];for(const t of tokens){let overlap=false;for(let i=t.start;i<t.end;i++){if(used[i]){overlap=true;break}}if(!overlap){for(let i=t.start;i<t.end;i++)used[i]=1;valid.push(t)}}valid.sort((a,b)=>a.start-b.start);let result='';let pos=0;for(const t of valid){if(t.start>pos){result+=code.substring(pos,t.start).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}result+='<span class="hl-'+t.cls+'">'+t.text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</span>';pos=t.end}if(pos<code.length){result+=code.substring(pos).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}return result}
-
-    function updateHighlighting(){const editor=document.getElementById('editor');const highlightLayer=document.getElementById('highlight-layer');if(!editor||!highlightLayer||!settings.highlighting)return;const tab=getActiveTab();if(!tab)return;const lang=tab.format==='markdown'?'markdown':tab.format==='script'?detectLanguage(tab.path||tab.title):tab.format==='json'?'json':'plaintext';if(lang==='plaintext'){editor.style.color='#e0e0e0';highlightLayer.style.display='none';return}const highlighted=highlightCode(editor.value,lang);highlightLayer.innerHTML=highlighted+'<br>';editor.style.color='transparent';editor.style.textShadow='none';highlightLayer.style.display='block';highlightLayer.scrollTop=editor.scrollTop}
-
-    function detectLanguage(pathOrTitle){const ext=(pathOrTitle||'').split('.').pop().toLowerCase();const map={js:'javascript',py:'python',md:'markdown',json:'json',c:'c',h:'c',cpp:'c',rs:'rust',ps1:'powershell',bat:'batch',cmd:'batch',sh:'bash'};return map[ext]||'plaintext'}
-
-    function updateToolbar(){const tab=getActiveTab(),can=tab&&tab.isExecutable&&tab.runtimeAvailable,btn=document.getElementById('exec-btn');btn.disabled=!can||!tauriReady;btn.title=!tauriReady?'Aguardando inicialização...':tab&&tab.isExecutable&&!tab.runtimeAvailable?'Runtime não disponível':can?'Executar':'Arquivo não executável'}
-
-    function updateFileType(){const tab=getActiveTab();if(!tab)return;const f={markdown:'Markdown',plaintext:'Texto',richtext:'RTF',script:tab.runtimeAvailable?'Script':'Script (sem runtime)'};document.getElementById('file-type').textContent=f[tab.format]||'Texto'}
-
-    function setStatus(msg){document.getElementById('status-message').textContent=msg}
-
-    let statusTimeout;function updateStatusInfo(){clearTimeout(statusTimeout);statusTimeout=setTimeout(()=>{const tab=getActiveTab();if(!tab)return;const ed=document.getElementById('editor'),line=ed.value.slice(0,ed.selectionStart).split('\n').length;document.getElementById('status-info').textContent='Ln '+line},50)}
-
-    const editor=document.getElementById('editor');
-    editor.addEventListener('input',e=>{const tab=getActiveTab();if(tab){tab.content=e.target.value;tab.dirty=true;renderTabs();updateLineNumbers();updateHighlighting();updateWordCount()}});
-    editor.addEventListener('keyup',()=>{updateLineNumbers();updateStatusInfo()});
-    editor.addEventListener('click',updateStatusInfo);
-    editor.addEventListener('keydown',e=>{if(e.key==='Tab'){e.preventDefault();const s=editor.selectionStart,en=editor.selectionEnd,v=editor.value;if(e.shiftKey){const lineStart=v.lastIndexOf('\n',s-1)+1;const lineText=v.substring(lineStart,en);const stripped=lineText.replace(/^( {1,4}|\t)/gm,'');const diff=lineText.length-stripped.length;editor.value=v.substring(0,lineStart)+stripped+v.substring(en);editor.selectionStart=Math.max(lineStart,s-Math.min(diff,4));editor.selectionEnd=en-diff}else if(s!==en){const lineStart=v.lastIndexOf('\n',s-1)+1;const lineText=v.substring(lineStart,en);const indented=lineText.replace(/^/gm,'    ');const diff=indented.length-lineText.length;editor.value=v.substring(0,lineStart)+indented+v.substring(en);editor.selectionStart=lineStart;editor.selectionEnd=en+diff}else{editor.value=v.substring(0,s)+'    '+v.substring(en);editor.selectionStart=editor.selectionEnd=s+4}editor.dispatchEvent(new Event('input'))}});
-    editor.addEventListener('scroll',()=>{const ln=document.getElementById('line-numbers');const hl=document.getElementById('highlight-layer');if(ln)ln.scrollTop=editor.scrollTop;if(hl)hl.scrollTop=editor.scrollTop});
-
-    document.addEventListener('keydown',e=>{if(e.ctrlKey){if(e.key==='n'){e.preventDefault();newTab()}else if(e.key==='o'){e.preventDefault();openFile()}else if(e.key==='s'){e.preventDefault();saveFile()}else if(e.key==='h'){e.preventDefault();openFindReplace()}else if(e.key==='F5'){e.preventDefault();executeCurrent()}}});
-
-    // Sidebar resize
-    const resizeHandle=document.getElementById('resize-handle');
-    const sidebar=document.getElementById('sidebar');
-    let isResizing=false;
-    
-    resizeHandle.addEventListener('mousedown',e=>{isResizing=true;resizeHandle.classList.add('active');document.body.style.cursor='col-resize';document.body.style.userSelect='none'});
-    document.addEventListener('mousemove',e=>{if(!isResizing)return;const newWidth=Math.max(150,Math.min(500,e.clientX));sidebar.style.width=newWidth+'px'});
-    document.addEventListener('mouseup',()=>{if(isResizing){isResizing=false;resizeHandle.classList.remove('active');document.body.style.cursor='';document.body.style.userSelect='';try{localStorage.setItem('autunpad-sidebar-width',sidebar.style.width)}catch(e){}}});
-
-    // Criar aba padrão imediatamente (não precisa do Tauri)
-    newTab();
-    updateLineNumbers();
-    setStatus('Aguardando inicialização...');
-    
-    // Carregar e aplicar configurações
-    loadSettings();
-    applySettings();
-    
-    // Carregar largura do sidebar
-    try{const savedWidth=localStorage.getItem('autunpad-sidebar-width');if(savedWidth)sidebar.style.width=savedWidth}catch(e){}
-
-    // Aguardar Tauri inicializar com polling
-    let tauriCheckAttempts = 0;
-    const maxAttempts = 50; // 5 segundos máximo
-    
-    function checkTauri() {
-        if (window.__TAURI__ && window.__TAURI__.core) {
-            invoke = window.__TAURI__.core.invoke;
-            tauriReady = true;
-            console.log('Tauri inicializado com sucesso');
-            setStatus('Pronto');
-            updateToolbar();
-            invoke('check_runtimes').then(runtimes => {
-                pythonAvailable = runtimes.python;
-                console.log('Python disponível:', pythonAvailable);
-            }).catch(e => {
-                pythonAvailable = false;
-            });
-        } else if (tauriCheckAttempts < maxAttempts) {
-            tauriCheckAttempts++;
-            setTimeout(checkTauri, 100);
-        } else {
-            console.error('Falha ao inicializar Tauri após', maxAttempts, 'tentativas');
-            setStatus('Erro: Tauri não inicializado');
+    async function saveFileAs() {
+      if (!requireTauri()) return;
+      const tab = getActiveTab();
+      if (!tab) return;
+      try {
+        const r = await invoke('save_file', { path: null, suggestedName: tab.title, content: tab.content });
+        if (r) {
+          tab.path = r.path;
+          tab.title = r.title;
+          tab.format = r.format;
+          tab.isExecutable = r.is_executable;
+          tab.runtimeAvailable = r.runtime_available;
+          tab.dirty = false;
+          tab.originalTitle = tab.title;
+          tab.originalContent = tab.content;
+          tab.originalFormat = tab.format;
+          await updateTabMetadataFromTitle(tab);
+          saveToHistory(tab.title, tab.content);
+          renderTabs();
+          updateToolbar();
+          updateFileType();
+          updateHighlighting();
+          setStatus('Arquivo salvo em: ' + tab.path);
         }
+      } catch (e) { if (e !== 'Cancelado') setStatus(t('error') + ': ' + e); }
+    }
+
+    async function openFile() {
+      if (!requireTauri()) return;
+      try {
+        const r = await invoke('open_file');
+        if (r) {
+          const id = Date.now(), tab = new Tab(id, r.title, r.content, r.path, r.format, r.is_executable, r.runtime_available);
+          await updateTabMetadataFromTitle(tab);
+          tabs.push(tab);
+          activeTabId = id;
+          renderTabs();
+          loadTabContent();
+          setStatus('Arquivo aberto');
+        }
+      } catch (e) { setStatus(t('error') + ': ' + e); }
+    }
+
+    async function saveFile() {
+      if (!requireTauri()) return false;
+      const tab = getActiveTab();
+      if (!tab) return false;
+      try {
+        let savePath = tab.path || undefined;
+        if (savePath && tab.title !== tab.originalTitle) {
+          const dir = savePath.substring(0, savePath.lastIndexOf('\\') > 0 ? savePath.lastIndexOf('\\') + 1 : savePath.lastIndexOf('/') + 1);
+          savePath = dir + tab.title;
+        }
+        if (savePath && !tauriReady) {
+          setStatus(t('waiting_init'));
+          return false;
+        }
+        if (savePath) {
+          try {
+            const exists = await invoke('check_file_exists', { path: savePath });
+            if (!exists) savePath = undefined;
+          } catch (e) { savePath = undefined; }
+        }
+        const r = await invoke('save_file', { path: savePath, suggestedName: tab.title, content: tab.content });
+        if (r) {
+          tab.path = r.path;
+          tab.title = r.title;
+          tab.format = r.format;
+          tab.isExecutable = r.is_executable;
+          tab.runtimeAvailable = r.runtime_available;
+          tab.dirty = false;
+          tab.originalTitle = tab.title;
+          tab.originalContent = tab.content;
+          tab.originalFormat = tab.format;
+          await updateTabMetadataFromTitle(tab);
+          saveToHistory(tab.title, tab.content);
+          renderTabs();
+          updateToolbar();
+          updateFileType();
+          updateHighlighting();
+          const editor = document.getElementById('editor');
+          const hl = document.getElementById('highlight-layer');
+          if (editor && hl) { hl.scrollTop = editor.scrollTop; editor.scrollTop = hl.scrollTop; }
+          setStatus('Arquivo salvo');
+          return true;
+        }
+        return false;
+      } catch (e) {
+        if (e === 'Cancelado') { tab.path = null; tab.dirty = true; renderTabs(); updateToolbar(); }
+        else setStatus(t('error') + ': ' + e);
+        return false;
+      }
+    }
+
+    function saveToHistory(title, content) {
+      if (!content || !content.trim()) return;
+      const history = JSON.parse(localStorage.getItem('autunpad-history') || '[]');
+      const entry = { title, content, timestamp: Date.now() };
+      history.unshift(entry);
+      if (history.length > 10) history.pop();
+      localStorage.setItem('autunpad-history', JSON.stringify(history));
+    }
+
+    function toggleHistory() {
+      const menu = document.getElementById('history-menu');
+      if (!menu) return;
+      const settingsMenu = document.getElementById('settings-menu');
+      if (settingsMenu) settingsMenu.classList.remove('show');
+      menu.classList.toggle('show');
+      if (menu.classList.contains('show')) {
+        const history = JSON.parse(localStorage.getItem('autunpad-history') || '[]');
+        const items = history.map((h, i) => {
+          const date = new Date(h.timestamp).toLocaleString('pt-BR');
+          return '<div class="settings-item" data-action="load-history" data-index="' + i + '"><div><div style="font-weight:600">' + escapeHtml(h.title) + '</div><div style="font-size:10px;color:#808080">' + date + '</div></div></div>';
+        }).join('');
+        const clearBtn = '<div class="settings-item" data-action="clear-history"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg><span>Limpar histórico</span></div>';
+        menu.innerHTML = items + (items ? clearBtn : '<div class="settings-item" style="color:#808080">Histórico vazio</div>');
+      }
+    }
+
+    function loadFromHistory(index) {
+      const history = JSON.parse(localStorage.getItem('autunpad-history') || '[]');
+      const entry = history[index];
+      if (!entry) return;
+      const id = Date.now(), tab = new Tab(id, entry.title, entry.content);
+      tabs.push(tab);
+      activeTabId = id;
+      renderTabs();
+      loadTabContent();
+      document.getElementById('history-menu').classList.remove('show');
+      setStatus('Texto carregado do histórico');
+    }
+
+    function clearHistory() {
+      localStorage.removeItem('autunpad-history');
+      document.getElementById('history-menu').classList.remove('show');
+      setStatus('Histórico limpo');
+    }
+
+    async function openFolder() {
+      if (!requireTauri()) return;
+      const unsavedTabs = tabs.filter(t => !t.path && t.content.trim());
+      if (unsavedTabs.length > 0) {
+        const shouldSave = confirm(`Você tem ${unsavedTabs.length} aba(s) sem salvar. Deseja salvar antes de abrir a pasta?`);
+        if (shouldSave) for (const tab of unsavedTabs) {
+          const orig = activeTabId;
+          activeTabId = tab.id;
+          await saveFile();
+          activeTabId = orig;
+        }
+      }
+      try {
+        const r = await invoke('open_folder');
+        if (r) {
+          dedicatedFolder = r.folder;
+          if (!saveFolder) saveFolder = r.folder;
+          localStorage.setItem('autunpad-last-folder', r.folder);
+          renderFileList(r.files);
+          renderSaveFolder();
+          setStatus('Pasta aberta');
+        }
+      } catch (e) { setStatus(t('error') + ': ' + e); }
+    }
+
+    async function restoreFolder(folderPath) {
+      if (!requireTauri()) return;
+      try {
+        const files = await invoke('scan_folder', { path: folderPath });
+        if (files) {
+          dedicatedFolder = folderPath;
+          if (!saveFolder) saveFolder = folderPath;
+          renderFileList(files);
+          renderSaveFolder();
+          setStatus('Pasta restaurada');
+        }
+      } catch (e) { localStorage.removeItem('autunpad-last-folder'); }
+    }
+
+    async function closeFolder() {
+      if (!requireTauri()) return;
+      const oldFolder = dedicatedFolder;
+      if (oldFolder) {
+        const dirtyOrphanTabs = tabs.filter(t => t.path && t.path.startsWith(oldFolder) && t.dirty);
+        if (dirtyOrphanTabs.length > 0) {
+          const shouldSave = confirm(`${dirtyOrphanTabs.length} aba(s) com mudanças não salvas serão desvinculadas da pasta. Deseja salvar antes de fechar?`);
+          if (shouldSave) {
+            for (const tab of dirtyOrphanTabs) {
+              const orig = activeTabId;
+              activeTabId = tab.id;
+              await saveFile();
+              activeTabId = orig;
+            }
+          }
+        }
+      }
+      invoke('close_folder').then(() => {
+        tabs.forEach(tab => {
+          if (tab.path && oldFolder && tab.path.startsWith(oldFolder)) {
+            tab.path = null;
+            tab.saveFolder = null;
+            tab.dirty = true;
+          }
+        });
+        dedicatedFolder = null;
+        saveFolder = null;
+        localStorage.removeItem('autunpad-last-folder');
+        document.getElementById('file-list').innerHTML = '<div class="file-empty">Nenhuma pasta aberta</div>';
+        renderSaveFolder();
+        renderTabs();
+        setStatus('Pasta fechada');
+      }).catch(e => setStatus('Erro: ' + e));
+    }
+
+    function resetAll() {
+      if (tabs.some(t => t.dirty)) {
+        if (!confirm('Existem alterações não salvas. Deseja resetar mesmo assim?')) return;
+      }
+      tabs = [new Tab(Date.now(), 'Sem Nome.txt')];
+      activeTabId = tabs[0].id;
+      closeFolder();
+      renderTabs();
+      loadTabContent();
+      setStatus('Resetado');
+    }
+
+    async function pickGlobalSaveFolder() {
+      if (!requireTauri()) return;
+      try {
+        const r = await invoke('pick_save_folder', { parent: dedicatedFolder || undefined });
+        if (r && r.path) {
+          if (dedicatedFolder && !isInsideFolder(r.path, dedicatedFolder)) {
+            setStatus('Deve salvar dentro da pasta dedicada');
+            return;
+          }
+          saveFolder = r.path;
+          renderSaveFolder();
+          setStatus('Pasta de salvamento definida');
+        } else if (r === null) setStatus('Deve salvar dentro da pasta dedicada');
+      } catch (e) { setStatus(t('error') + ': ' + e); }
+    }
+
+    function isInsideFolder(path, folder) {
+      const p = path.replace(/\\/g, '/').toLowerCase(), f = folder.replace(/\\/g, '/').toLowerCase().replace(/\/+$/, '');
+      return p.startsWith(f + '/');
+    }
+
+    function renderSaveFolder() {
+      const el = document.getElementById('save-folder-display'), folder = saveFolder || dedicatedFolder;
+      if (folder) {
+        const name = folder.split(/[\\/]/).pop();
+        const wrapper = document.createElement('div');
+        wrapper.className = 'save-folder-box';
+        const header = document.createElement('div');
+        header.className = 'save-folder-head';
+        header.innerHTML = '<svg width="12" height="12" fill="none" stroke="#0078d4" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>';
+        const label = document.createElement('span');
+        label.className = 'save-folder-label';
+        label.textContent = 'Salvar em';
+        header.appendChild(label);
+        wrapper.appendChild(header);
+        const pathDiv = document.createElement('div');
+        pathDiv.className = 'save-folder-path';
+        pathDiv.title = folder;
+        pathDiv.textContent = name;
+        wrapper.appendChild(pathDiv);
+        el.innerHTML = '';
+        el.appendChild(wrapper);
+      } else el.innerHTML = '';
+    }
+
+    async function openSidebarFile(path) {
+      if (!requireTauri()) return;
+      const existing = tabs.find(t => t.path === path);
+      if (existing) {
+        activeTabId = existing.id;
+        renderTabs();
+        loadTabContent();
+        return;
+      }
+      try {
+        const r = await invoke('open_file_by_path', { path });
+        if (r) {
+          const id = Date.now(), tab = new Tab(id, r.title, r.content, r.path, r.format, r.is_executable, r.runtime_available);
+          tabs.push(tab);
+          activeTabId = id;
+          renderTabs();
+          loadTabContent();
+        }
+      } catch (e) { setStatus(t('error') + ': ' + e); }
+    }
+
+    function updateWordCount() {
+      const editor = document.getElementById('editor');
+      if (!editor) return;
+      const text = editor.value;
+      const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+      const chars = text.length;
+      document.getElementById('word-count').textContent = words + ' palavra' + (words !== 1 ? 's' : '');
+      document.getElementById('char-count').textContent = chars + ' char' + (chars !== 1 ? 's' : '');
+    }
+
+    function showSavedIndicator() {
+      const indicator = document.getElementById('saved-indicator');
+      if (!indicator) return;
+      indicator.classList.add('show');
+      setTimeout(() => indicator.classList.remove('show'), 1500);
+    }
+
+    function openFindReplace() {
+      const panel = document.querySelector('.find-replace');
+      if (!panel) return;
+      panel.classList.add('show');
+      const input = document.getElementById('find-input');
+      if (input) input.focus();
+    }
+
+    function closeFindReplace() {
+      const panel = document.querySelector('.find-replace');
+      if (panel) panel.classList.remove('show');
+    }
+
+    function findNext(reverse = false) {
+      const editor = document.getElementById('editor');
+      const findInput = document.getElementById('find-input');
+      if (!editor || !findInput) return;
+      const searchTerm = findInput.value;
+      if (!searchTerm) return;
+      const text = editor.value;
+      const startPos = reverse ? editor.selectionStart : editor.selectionEnd;
+      let index;
+      if (reverse) {
+        index = text.lastIndexOf(searchTerm, startPos - searchTerm.length);
+        if (index === -1 && startPos > 0) index = text.lastIndexOf(searchTerm, text.length);
+      } else {
+        index = text.indexOf(searchTerm, startPos);
+        if (index === -1) index = text.indexOf(searchTerm, 0);
+      }
+      if (index !== -1) {
+        editor.focus();
+        editor.setSelectionRange(index, index + searchTerm.length);
+      } else {
+        setStatus('Não encontrado');
+      }
+    }
+
+    function replaceOne() {
+      const editor = document.getElementById('editor');
+      const findInput = document.getElementById('find-input');
+      const replaceInput = document.getElementById('replace-input');
+      if (!editor || !findInput || !replaceInput) return;
+      const searchTerm = findInput.value;
+      const replaceTerm = replaceInput.value;
+      if (!searchTerm) return;
+      const start = editor.selectionStart;
+      const end = editor.selectionEnd;
+      const selectedText = editor.value.substring(start, end);
+      if (selectedText === searchTerm) {
+        editor.value = editor.value.substring(0, start) + replaceTerm + editor.value.substring(end);
+        editor.dispatchEvent(new Event('input'));
+        const newIndex = start + replaceTerm.length;
+        editor.setSelectionRange(newIndex, newIndex);
+        findNext(false);
+      } else {
+        findNext(false);
+      }
+    }
+
+    function replaceAll() {
+      const editor = document.getElementById('editor');
+      const findInput = document.getElementById('find-input');
+      const replaceInput = document.getElementById('replace-input');
+      if (!editor || !findInput || !replaceInput) return;
+      const searchTerm = findInput.value;
+      const replaceTerm = replaceInput.value;
+      if (!searchTerm) return;
+      const count = (editor.value.match(new RegExp(searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) || []).length;
+      editor.value = editor.value.split(searchTerm).join(replaceTerm);
+      editor.dispatchEvent(new Event('input'));
+      setStatus(count + ' ' + t('replacements_done'));
+    }
+
+    function showTerminalPanel() {
+      const panel = document.querySelector('.terminal-panel');
+      if (!panel) return;
+      panel.classList.add('visible');
+      try { localStorage.setItem('autunpad-term-visible', '1'); } catch (e) { }
+    }
+
+    function hideTerminalPanel() {
+      const panel = document.querySelector('.terminal-panel');
+      if (!panel) return;
+      panel.classList.remove('visible');
+      try { localStorage.setItem('autunpad-term-visible', '0'); } catch (e) { }
+    }
+
+    function toggleTerminalPanel() {
+      const panel = document.querySelector('.terminal-panel');
+      if (!panel) return;
+      if (panel.classList.contains('visible')) hideTerminalPanel();
+      else showTerminalPanel();
+    }
+
+    async function rerunTerminal(id) {
+      if (!requireTauri()) return;
+      const term = terminals.find(t => t.id === id);
+      if (!term || !term.path) return;
+      try {
+        setStatus('Reexecutando ' + term.name + '...');
+        const oldIndex = terminals.findIndex(t => t.id === id);
+        try { await invoke('clear_execution', { id }); } catch (e) { }
+        const session = await invoke('execute_file', { path: term.path });
+        if (oldIndex >= 0) {
+          terminals[oldIndex] = session;
+        } else {
+          terminals.push(session);
+        }
+        activeTermId = session.id;
+        showTerminalPanel();
+        renderTerminals();
+        ensureTermPoll();
+        setStatus('Terminal: ' + session.name + ' (' + session.runtime + ')');
+      } catch (e) {
+        setStatus(t('error') + ': ' + e);
+      }
+    }
+
+    function updateTermCount() {
+      const n = terminals.length, running = terminals.filter(x => x.status === 'running').length;
+      const countEl = document.getElementById('term-count');
+      if (countEl) {
+        countEl.textContent = n + ' ' + t('terminals') + (running ? ' (' + running + ' ' + t('run') + ')' : '');
+        countEl.title = t('show_terminals');
+      }
+      const stopBtn = document.getElementById('stop-btn');
+      if (stopBtn) {
+        if (running > 0) {
+          stopBtn.hidden = false;
+          stopBtn.style.display = 'flex';
+        } else {
+          stopBtn.hidden = true;
+          stopBtn.style.display = 'none';
+        }
+      }
+      const active = terminals.find(t => t.id === activeTermId);
+      const termStopBtn = document.getElementById('term-stop-btn');
+      if (termStopBtn) {
+        const show = !!(active && active.status === 'running');
+        termStopBtn.hidden = !show;
+        termStopBtn.style.display = show ? 'flex' : 'none';
+      }
+    }
+
+    function selectTerminal(id) {
+      activeTermId = id;
+      renderTerminals();
+    }
+
+    async function stopTerminalById(id, ev) {
+      if (ev) ev.stopPropagation();
+      if (!requireTauri() || id == null) return;
+      try {
+        await invoke('stop_execution', { id: id });
+        setStatus('Terminal #' + id + ' parado');
+        await pollTerminals();
+        ensureTermPoll();
+      } catch (e) { setStatus(t('error') + ': ' + e); }
+    }
+
+    function renderTerminals() {
+      const list = document.getElementById('term-items'), out = document.getElementById('term-output'), title = document.getElementById('term-title');
+      if (!list || !out || !title) return;
+      if (!terminals.length) {
+        list.innerHTML = '';
+        title.textContent = 'Nenhum terminal';
+        out.textContent = '';
+        updateTermCount();
+        return;
+      }
+      if (!activeTermId || !terminals.find(t => t.id === activeTermId)) activeTermId = terminals[terminals.length - 1].id;
+      const fragment = document.createDocumentFragment();
+      terminals.forEach(t => {
+        const el = document.createElement('div');
+        el.className = 'term-item' + (t.id === activeTermId ? ' active' : '');
+        el.onclick = () => selectTerminal(t.id);
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex;align-items:center;gap:6px;justify-content:space-between';
+        const name = document.createElement('div');
+        name.className = 'term-name';
+        name.textContent = t.name;
+        name.style.flex = '1';
+        name.style.minWidth = '0';
+        const actions = document.createElement('div');
+        actions.style.cssText = 'display:flex;gap:2px;flex-shrink:0';
+        if (t.status === 'running') {
+          const stop = document.createElement('button');
+          stop.type = 'button';
+          stop.className = 'toolbar-btn';
+          stop.title = 'Parar este terminal';
+          stop.style.cssText = 'padding:2px';
+          stop.innerHTML = '<svg width="10" height="10" fill="#ff5555" viewBox="0 0 20 20"><rect x="4" y="4" width="12" height="12" rx="1"/></svg>';
+          stop.onclick = (e) => stopTerminalById(t.id, e);
+          actions.appendChild(stop);
+        } else {
+          const rerun = document.createElement('button');
+          rerun.type = 'button';
+          rerun.className = 'toolbar-btn';
+          rerun.title = 'Reexecutar';
+          rerun.style.cssText = 'padding:2px';
+          rerun.innerHTML = '<svg width="10" height="10" fill="#3fb950" viewBox="0 0 20 20"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/></svg>';
+          rerun.onclick = (e) => { e.stopPropagation(); rerunTerminal(t.id); };
+          actions.appendChild(rerun);
+          const rm = document.createElement('button');
+          rm.type = 'button';
+          rm.className = 'toolbar-btn';
+          rm.title = 'Remover da lista';
+          rm.style.cssText = 'padding:2px';
+          rm.innerHTML = '<svg width="10" height="10" fill="none" stroke="#808080" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>';
+          rm.onclick = async (e) => {
+            e.stopPropagation();
+            if (!requireTauri()) return;
+            try {
+              await invoke('clear_execution', { id: t.id });
+              terminals = terminals.filter(x => x.id !== t.id);
+              if (activeTermId === t.id) activeTermId = terminals.length ? terminals[terminals.length - 1].id : null;
+              renderTerminals();
+            } catch (err) { setStatus(t('error') + ': ' + err); }
+          };
+          actions.appendChild(rm);
+        }
+        row.append(name, actions);
+        const meta = document.createElement('div');
+        meta.className = 'term-meta';
+        const dot = document.createElement('span');
+        dot.className = 'term-dot ' + t.status;
+        const rt = document.createElement('span');
+        rt.textContent = t.runtime;
+        const st = document.createElement('span');
+        st.textContent = t.status;
+        meta.append(dot, rt, st);
+        el.append(row, meta);
+        fragment.appendChild(el);
+      });
+      list.innerHTML = '';
+      list.appendChild(fragment);
+      const active = terminals.find(t => t.id === activeTermId);
+      if (active) {
+        title.textContent = active.name + ' · ' + active.runtime + ' · ' + active.status;
+        const wasBottom = out.scrollHeight - out.scrollTop - out.clientHeight < 40;
+        const output = (active.output || '').replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '');
+        if (output.length > 24000) out.textContent = output.slice(-24000);
+        else out.textContent = output.replace(/^[A-Z]:\\[^>]*>/gm, '>');
+        if (wasBottom) out.scrollTop = out.scrollHeight;
+      }
+      updateTermCount();
+    }
+
+    function ensureTermPoll() {
+      if (termPollTimer) return;
+      termPollTimer = setInterval(pollTerminals, 1500);
+    }
+
+    function stopTermPollIfIdle() {
+      if (terminals.some(t => t.status === 'running')) return;
+      if (termPollTimer) {
+        clearInterval(termPollTimer);
+        termPollTimer = null;
+      }
+    }
+
+    async function pollTerminals() {
+      if (!requireTauri()) return;
+      try {
+        const sums = await invoke('list_execution_summaries') || [];
+        const prev = new Map(terminals.map(t => [t.id, t]));
+        const next = [];
+        for (const s of sums) {
+          const old = prev.get(s.id);
+          const needOut = !old || old.status !== s.status || old.output_len !== s.output_len || s.id === activeTermId;
+          if (needOut) {
+            try {
+              const full = await invoke('get_execution', { id: s.id });
+              next.push(full);
+            } catch (e) {
+              next.push({ ...s, output: (old && old.output) || '' });
+            }
+          } else {
+            next.push({ ...s, output: (old && old.output) || '' });
+          }
+        }
+        terminals = next;
+        renderTerminals();
+        stopTermPollIfIdle();
+      } catch (e) {
+        stopTermPollIfIdle();
+      }
+    }
+
+    async function executeCurrent() {
+      if (!requireTauri()) return;
+      const tab = getActiveTab();
+      if (!tab || !tab.isExecutable || !tab.runtimeAvailable) {
+        tab && !tab.runtimeAvailable ? setStatus('Runtime não disponível') : setStatus('Arquivo não executável');
+        return;
+      }
+      if (!tab.path || tab.dirty) {
+        const saved = await saveFile();
+        showSavedIndicator();
+        if (!saved || !tab.path) return;
+      }
+      try {
+        setStatus('Iniciando ' + tab.title + '...');
+        const session = await invoke('execute_file', { path: tab.path });
+        const i = terminals.findIndex(t => t.id === session.id);
+        if (i >= 0) terminals[i] = session;
+        else terminals.push(session);
+        activeTermId = session.id;
+        showTerminalPanel();
+        renderTerminals();
+        ensureTermPoll();
+        setStatus('Terminal: ' + session.name + ' (' + session.runtime + ')');
+      } catch (e) {
+        setStatus(t('error') + ': ' + e);
+        showTerminalPanel();
+        const out = document.getElementById('term-output');
+        if (out) out.textContent = t('error') + ': ' + e;
+      }
+    }
+
+    async function stopActiveTerminal() {
+      if (!requireTauri()) return;
+      try {
+        if (activeTermId != null) {
+          await invoke('stop_execution', { id: activeTermId });
+          setStatus('Terminal ativo parado');
+        } else {
+          const running = terminals.filter(t => t.status === 'running');
+          if (!running.length) {
+            setStatus('Nenhum terminal em execução');
+            updateTermCount();
+            return;
+          }
+          for (const t of running) {
+            try { await invoke('stop_execution', { id: t.id }); } catch (e) { }
+          }
+          setStatus('Todos parados');
+        }
+        await pollTerminals();
+        ensureTermPoll();
+      } catch (e) { setStatus(t('error') + ': ' + e); }
+    }
+
+    async function clearActiveTerminal() {
+      if (!requireTauri() || activeTermId == null) return;
+      const t = terminals.find(x => x.id === activeTermId);
+      if (!t) return;
+      try {
+        if (t.status === 'running') await invoke('stop_execution', { id: activeTermId });
+        await invoke('clear_execution', { id: activeTermId });
+        terminals = terminals.filter(x => x.id !== activeTermId);
+        activeTermId = terminals.length ? terminals[terminals.length - 1].id : null;
+        renderTerminals();
+        if (!terminals.length) {
+          // keep panel open so user can reopen via status; only hide if user wants
+          const out = document.getElementById('term-output');
+          const title = document.getElementById('term-title');
+          if (out) out.textContent = '';
+          if (title) title.textContent = 'Nenhum terminal';
+        }
+      } catch (e) { setStatus(t('error') + ': ' + e); }
+    }
+
+    async function clearFinishedTerminals() {
+      if (!requireTauri()) return;
+      try {
+        await invoke('clear_finished_executions');
+        terminals = terminals.filter(t => t.status === 'running');
+        if (!terminals.find(t => t.id === activeTermId)) activeTermId = terminals.length ? terminals[terminals.length - 1].id : null;
+        renderTerminals();
+        setStatus('Terminais finalizados limpos');
+      } catch (e) { setStatus(t('error') + ': ' + e); }
+    }
+
+    function closeTab(id, ev) {
+      ev.stopPropagation();
+      if (tabs.length <= 1) return;
+      const tab = tabs.find(t => t.id === id);
+      if (tab && tab.dirty) {
+        if (!confirm('A aba "' + tab.title + '" tem alterações não salvas. Fechar mesmo assim?')) return;
+      }
+      const idx = tabs.findIndex(t => t.id === id);
+      tabs.splice(idx, 1);
+      if (activeTabId === id) activeTabId = tabs[Math.max(0, idx - 1)].id;
+      renderTabs();
+      loadTabContent();
+    }
+
+    function switchTab(id) {
+      saveCurrentContent();
+      activeTabId = id;
+      renderTabs();
+      loadTabContent();
+    }
+
+    function getActiveTab() {
+      return tabs.find(t => t.id === activeTabId);
+    }
+
+    function loadTabContent() {
+      const tab = getActiveTab();
+      if (!tab) return;
+      document.getElementById('editor').value = tab.content;
+      updateLineNumbers();
+      updateToolbar();
+      updateStatusInfo();
+      updateFileType();
+      updateHighlighting();
+      updateWordCount();
+    }
+
+    function saveCurrentContent() {
+      const tab = getActiveTab();
+      if (!tab) return;
+      const c = document.getElementById('editor').value;
+      if (c !== tab.content) {
+        tab.content = c;
+        tab.dirty = true;
+      }
+    }
+
+    function initDragHandlers() {
+      document.addEventListener('mousemove', (e) => {
+        if (!dragState) return;
+        const dx = e.clientX - dragState.startX;
+        const dy = e.clientY - dragState.startY;
+        if (!dragState.moved && Math.sqrt(dx*dx + dy*dy) < 5) return;
+        
+        if (!dragState.ghost) {
+          const ghost = document.createElement('div');
+          ghost.className = 'tab-ghost';
+          ghost.textContent = tabs[dragState.from].title;
+          document.body.appendChild(ghost);
+          dragState.ghost = ghost;
+          dragState.el.classList.add('dragging');
+        }
+        
+        dragState.moved = true;
+        dragState.ghost.style.left = (e.clientX - dragState.offsetX) + 'px';
+        dragState.ghost.style.top = (e.clientY - dragState.offsetY) + 'px';
+        const ct = document.getElementById('tabs-container');
+        const tabEls = Array.from(ct.querySelectorAll('.tab-el'));
+        tabEls.forEach(t => t.classList.remove('drag-over-left', 'drag-over-right'));
+        const target = tabEls.find(t => {
+          const r = t.getBoundingClientRect();
+          return e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
+        });
+        if (target) {
+          const targetIdx = parseInt(target.dataset.tabIndex);
+          if (targetIdx !== dragState.from) {
+            const rect = target.getBoundingClientRect();
+            if (e.clientX < rect.left + rect.width / 2) {
+              target.classList.add('drag-over-left');
+            } else {
+              target.classList.add('drag-over-right');
+            }
+          }
+        }
+      });
+
+      document.addEventListener('mouseup', (e) => {
+        if (!dragState) return;
+        const ct = document.getElementById('tabs-container');
+        const tabEls = Array.from(ct.querySelectorAll('.tab-el'));
+        tabEls.forEach(t => {
+          t.classList.remove('drag-over-left', 'drag-over-right', 'dragging');
+        });
+        if (dragState.ghost && dragState.ghost.parentNode) {
+          dragState.ghost.remove();
+        }
+        if (dragState.moved) {
+          const ct = document.getElementById('tabs-container');
+          const allEls = Array.from(ct.querySelectorAll('.tab-el'));
+          allEls.forEach(t => t.classList.remove('drag-over-left', 'drag-over-right', 'dragging'));
+          const visibleEls = allEls.filter(el => parseInt(el.dataset.tabIndex) !== dragState.from);
+          if (visibleEls.length === 0) {
+            dragState = null;
+            return;
+          }
+          const mouseX = e.clientX;
+          let dropIndex = visibleEls.length;
+          for (let i = 0; i < visibleEls.length; i++) {
+            const rect = visibleEls[i].getBoundingClientRect();
+            const center = rect.left + rect.width / 2;
+            if (mouseX < rect.left) {
+              dropIndex = i;
+              break;
+            } else if (mouseX >= rect.left && mouseX <= rect.right) {
+              dropIndex = mouseX <= center ? i : i + 1;
+              break;
+            }
+          }
+          const movedTab = tabs.splice(dragState.from, 1)[0];
+          tabs.splice(dropIndex, 0, movedTab);
+          renderTabs();
+        }
+        dragState = null;
+      });
+    }
+
+    function renderTabs() {
+      const ct = document.getElementById('tabs-container');
+      if (!ct) return;
+      ct.innerHTML = '';
+      tabs.forEach((tab, index) => {
+        const el = document.createElement('div');
+        el.className = 'tab-el' + (tab.id === activeTabId ? ' tab-active' : ' tab-inactive');
+        el.dataset.tabIndex = index;
+        el.onclick = (e) => {
+          if (dragState && dragState.moved) return;
+          if (e.target.classList.contains('tab-name')) return;
+          switchTab(tab.id);
+        };
+        el.onmousedown = (e) => {
+          if (e.button !== 0) return;
+          if (e.target.closest('.tab-close')) return;
+          e.preventDefault();
+          const startX = e.clientX, startY = e.clientY;
+          const rect = el.getBoundingClientRect();
+          dragState = { from: index, ghost: null, moved: false, offsetX: rect.width / 2, offsetY: rect.height / 2, startX, startY, el };
+        };
+        const dirty = document.createElement('span');
+        dirty.style.cssText = 'color:#0078d4;font-size:10px';
+        dirty.textContent = tab.dirty ? '*' : '';
+        const name = document.createElement('span');
+        name.className = 'tab-name';
+        name.textContent = tab.title;
+        name.addEventListener('dblclick', (e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          startRenameTab(tab.id, e);
+        });
+        el.append(dirty, name);
+        const close = document.createElement('span');
+        close.className = 'tab-close';
+        close.textContent = '\u00d7';
+        close.onclick = e => closeTab(tab.id, e);
+        el.append(close);
+        ct.appendChild(el);
+      });
+      const add = document.createElement('button');
+      add.style.cssText = 'padding:0 12px;color:#808080;transition:all .15s;display:flex;align-items:center;justify-content:center;height:100%;cursor:pointer;background:none;border:none';
+      add.innerHTML = '+';
+      add.onclick = newTab;
+      add.onmouseover = () => add.style.color = '#e0e0e0';
+      add.onmouseout = () => add.style.color = '#808080';
+      ct.appendChild(add);
+      setTimeout(() => {
+        const activeEl = ct.querySelector('.tab-active');
+        if (activeEl) activeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+      }, 50);
+    }
+
+    async function startRenameTab(id, ev) {
+      ev.stopPropagation();
+      ev.preventDefault();
+      const tab = tabs.find(t => t.id === id);
+      if (!tab) return;
+      const span = ev.target;
+      if (span.tagName !== 'SPAN') return;
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = tab.title;
+      input.className = 'rename-input';
+      span.replaceWith(input);
+      input.focus();
+      input.select();
+      let done = false;
+      const finish = async () => {
+        if (done) return;
+        done = true;
+        const name = input.value.trim();
+        if (name && name !== tab.title) {
+          if (tauriReady && invoke) {
+            try {
+              const v = await invoke('validate_filename', { filename: name });
+              if (v.valid) {
+                tab.title = name;
+                tab.dirty = true;
+                await updateTabMetadataFromTitle(tab);
+                updateToolbar();
+                updateHighlighting();
+                updateFileType();
+              } else {
+                setStatus('Nome inválido: ' + (v.error || ''));
+              }
+            } catch (e) {
+              const validLocal = /^[^<>:"/\\|?*]+$/.test(name) && !name.endsWith('.') && !name.endsWith(' ');
+              if (validLocal) {
+                tab.title = name;
+                tab.dirty = true;
+                await updateTabMetadataFromTitle(tab);
+                updateToolbar();
+                updateHighlighting();
+                updateFileType();
+              } else {
+                setStatus('Nome inválido');
+              }
+            }
+          } else {
+            const validLocal = /^[^<>:"/\\|?*]+$/.test(name) && !name.endsWith('.') && !name.endsWith(' ');
+            if (validLocal) {
+              tab.title = name;
+              tab.dirty = true;
+              await updateTabMetadataFromTitle(tab);
+              updateToolbar();
+              updateHighlighting();
+              updateFileType();
+            } else {
+              setStatus('Nome inválido');
+            }
+          }
+        }
+        renderTabs();
+      };
+      input.onblur = finish;
+      input.onkeydown = e => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          input.blur();
+        } else if (e.key === 'Escape') {
+          done = true;
+          renderTabs();
+        }
+      };
+    }
+
+    function renderFileList(files) {
+      const ct = document.getElementById('file-list');
+      ct.innerHTML = '';
+      files.forEach(file => {
+        const el = document.createElement('div');
+        el.className = 'file-item';
+        el.onclick = () => openSidebarFile(file.path);
+        const icon = file.is_executable ? '<svg width="12" height="12" fill="#0078d4" viewBox="0 0 20 20"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/></svg>' : '<svg width="12" height="12" fill="none" stroke="#808080" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>';
+        el.innerHTML = icon;
+        const span = document.createElement('span');
+        span.className = 'file-item-name';
+        span.textContent = file.name;
+        el.appendChild(span);
+        if (file.is_executable) {
+          const run = document.createElement('button');
+          run.className = 'toolbar-btn';
+          run.title = 'Executar em paralelo';
+          run.style.cssText = 'margin-left:auto;padding:2px;opacity:.7';
+          run.innerHTML = '<svg width="10" height="10" fill="#3fb950" viewBox="0 0 20 20"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/></svg>';
+          run.onclick = async (e) => {
+            e.stopPropagation();
+            if (!requireTauri()) return;
+            try {
+              const session = await invoke('execute_file', { path: file.path });
+              terminals.push(session);
+              activeTermId = session.id;
+              showTerminalPanel();
+              renderTerminals();
+              ensureTermPoll();
+              setStatus('Terminal: ' + session.name);
+            } catch (err) { setStatus(t('error') + ': ' + err); }
+          };
+          el.appendChild(run);
+        }
+        ct.appendChild(el);
+      });
+    }
+
+    function updateLineNumbers() {
+      const ed = document.getElementById('editor'), ln = document.getElementById('line-numbers');
+      if (!ed || !ln) return;
+      const count = Math.max(ed.value.split('\n').length, 1);
+      const digits = Math.max(String(count).length, 2);
+      const width = Math.max(40, (digits * 9) + 16);
+      ln.style.width = width + 'px';
+      ln.style.flexBasis = width + 'px';
+      let nums = '';
+      for (let i = 1; i <= count; i++) nums += i + (i < count ? '\n' : '');
+      ln.textContent = nums;
+      ln.scrollTop = ed.scrollTop;
+    }
+
+    function undo() {
+      const ed = document.getElementById('editor');
+      if (!ed) return;
+      ed.focus();
+      document.execCommand('undo');
+      ed.dispatchEvent(new Event('input'));
+    }
+    function redo() {
+      const ed = document.getElementById('editor');
+      if (!ed) return;
+      ed.focus();
+      document.execCommand('redo');
+      ed.dispatchEvent(new Event('input'));
+    }
+    function cutText() {
+      const ed = document.getElementById('editor');
+      if (!ed) return;
+      ed.focus();
+      const start = ed.selectionStart, end = ed.selectionEnd;
+      if (start === end) return;
+      const selected = ed.value.substring(start, end);
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(selected).then(() => {
+          ed.value = ed.value.substring(0, start) + ed.value.substring(end);
+          ed.selectionStart = ed.selectionEnd = start;
+          ed.dispatchEvent(new Event('input'));
+        }).catch(() => {
+          document.execCommand('cut');
+          ed.dispatchEvent(new Event('input'));
+        });
+      } else {
+        document.execCommand('cut');
+        ed.dispatchEvent(new Event('input'));
+      }
+    }
+    function copyText() {
+      const ed = document.getElementById('editor');
+      if (!ed) return;
+      ed.focus();
+      const start = ed.selectionStart, end = ed.selectionEnd;
+      if (start === end) return;
+      const selected = ed.value.substring(start, end);
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(selected).catch(() => document.execCommand('copy'));
+      } else {
+        document.execCommand('copy');
+      }
+    }
+    function pasteText() {
+      const editor = document.getElementById('editor');
+      if (!editor) return;
+      editor.focus();
+      if (navigator.clipboard && navigator.clipboard.readText) {
+        navigator.clipboard.readText().then(text => {
+          const start = editor.selectionStart;
+          const end = editor.selectionEnd;
+          editor.value = editor.value.substring(0, start) + text + editor.value.substring(end);
+          editor.selectionStart = editor.selectionEnd = start + text.length;
+          editor.dispatchEvent(new Event('input'));
+        }).catch(() => {
+          document.execCommand('paste');
+          editor.dispatchEvent(new Event('input'));
+        });
+      } else {
+        document.execCommand('paste');
+        editor.dispatchEvent(new Event('input'));
+      }
+    }
+
+    function toggleSettings() {
+      const menu = document.getElementById('settings-menu');
+      if (!menu) return;
+      const historyMenu = document.getElementById('history-menu');
+      if (historyMenu) historyMenu.classList.remove('show');
+      menu.classList.toggle('show');
+    }
+
+    function handleUiAction(action, el) {
+      switch (action) {
+        case 'undo': undo(); break;
+        case 'redo': redo(); break;
+        case 'cut': cutText(); break;
+        case 'copy': copyText(); break;
+        case 'paste': pasteText(); break;
+        case 'execute': executeCurrent(); break;
+        case 'stop': stopActiveTerminal(); break;
+        case 'history': toggleHistory(); break;
+        case 'settings': toggleSettings(); break;
+        case 'toggle-line-numbers': toggleLineNumbers(); break;
+        case 'toggle-word-wrap': toggleWordWrap(); break;
+        case 'change-font-size': changeFontSize(); break;
+        case 'toggle-highlighting': toggleHighlighting(); break;
+        case 'toggle-auto-save': toggleAutoSave(); break;
+        case 'reset-all': resetAll(); break;
+        case 'find-next': findNext(); break;
+        case 'replace-one': replaceOne(); break;
+        case 'replace-all': replaceAll(); break;
+        case 'close-find': closeFindReplace(); break;
+        case 'save-as': saveFileAs(); break;
+        case 'pick-save-folder': pickGlobalSaveFolder(); break;
+        case 'open-folder': openFolder(); break;
+        case 'close-folder': closeFolder(); break;
+        case 'clear-finished': clearFinishedTerminals(); break;
+        case 'clear-active': clearActiveTerminal(); break;
+        case 'toggle-terminal': toggleTerminalPanel(); break;
+        case 'load-history':
+          loadFromHistory(parseInt(el.getAttribute('data-index'), 10));
+          break;
+        case 'clear-history': clearHistory(); break;
+      }
+    }
+
+    document.addEventListener('click', e => {
+      const actionEl = e.target.closest('[data-action]');
+      if (actionEl) {
+        e.preventDefault();
+        handleUiAction(actionEl.getAttribute('data-action'), actionEl);
+        return;
+      }
+      const settingsMenu = document.getElementById('settings-menu');
+      const historyMenu = document.getElementById('history-menu');
+      if (settingsMenu && !e.target.closest('#settings-menu') && !e.target.closest('[data-action="settings"]')) {
+        settingsMenu.classList.remove('show');
+      }
+      if (historyMenu && !e.target.closest('#history-menu') && !e.target.closest('[data-action="history"]')) {
+        historyMenu.classList.remove('show');
+      }
+    });
+
+    function loadSettings() {
+      try {
+        const saved = localStorage.getItem('autunpad-settings');
+        if (saved) settings = { ...settings, ...JSON.parse(saved) };
+      } catch (e) { }
+    }
+
+    function saveSettings() {
+      try { localStorage.setItem('autunpad-settings', JSON.stringify(settings)); } catch (e) { }
+    }
+
+    function applySettings() {
+      const editor = document.getElementById('editor');
+      const hl = document.getElementById('highlight-layer');
+      const ln = document.getElementById('line-numbers');
+      const root = document.documentElement;
+      const fs = settings.fontSize + 'px';
+      const lh = Math.round(settings.fontSize * 1.7) + 'px';
+      const ws = settings.wordWrap ? 'pre-wrap' : 'pre';
+      const ow = settings.wordWrap ? 'break-word' : 'normal';
+      root.style.setProperty('--font-size', fs);
+      root.style.setProperty('--line-height', lh);
+      if (editor) {
+        editor.style.fontSize = fs;
+        editor.style.lineHeight = lh;
+        editor.style.whiteSpace = ws;
+        editor.style.overflowWrap = ow;
+      }
+      if (hl) {
+        hl.style.fontSize = fs;
+        hl.style.lineHeight = lh;
+        hl.style.whiteSpace = ws;
+        hl.style.overflowWrap = ow;
+      }
+      if (ln) {
+        ln.style.display = settings.lineNumbers ? 'block' : 'none';
+        ln.style.fontSize = fs;
+        ln.style.lineHeight = lh;
+      }
+      updateLineNumbers();
+      updateHighlighting();
+    }
+
+    function toggleLineNumbers() {
+      settings.lineNumbers = !settings.lineNumbers;
+      saveSettings();
+      applySettings();
+    }
+
+    function toggleWordWrap() {
+      settings.wordWrap = !settings.wordWrap;
+      saveSettings();
+      applySettings();
+    }
+
+    function changeFontSize() {
+      const sizes = [12, 14, 16, 18, 20];
+      const current = sizes.indexOf(settings.fontSize);
+      const next = (current + 1) % sizes.length;
+      settings.fontSize = sizes[next];
+      saveSettings();
+      applySettings();
+      setStatus('Fonte: ' + settings.fontSize + 'px');
+    }
+
+    function toggleHighlighting() {
+      settings.highlighting = !settings.highlighting;
+      saveSettings();
+      updateHighlighting();
+      setStatus('Destaque: ' + (settings.highlighting ? 'ativado' : 'desativado'));
+    }
+
+    let autoSaveInterval = null;
+    function setupAutoSave() {
+      if (autoSaveInterval) {
+        clearInterval(autoSaveInterval);
+        autoSaveInterval = null;
+      }
+      if (settings.autoSave) {
+        autoSaveInterval = setInterval(async () => {
+          for (const tab of tabs) {
+            if (tab.path && tab.dirty) {
+              try {
+                const r = await invoke('save_file', { path: tab.path, suggestedName: tab.title, content: tab.content });
+                if (r) {
+                  tab.dirty = false;
+                  tab.originalContent = tab.content;
+                }
+              } catch (e) { console.error('Auto-save failed:', e); }
+            }
+          }
+        }, 30000);
+      }
+    }
+
+    function toggleAutoSave() {
+      settings.autoSave = !settings.autoSave;
+      saveSettings();
+      setupAutoSave();
+      setStatus('Auto-save: ' + (settings.autoSave ? 'ativado' : 'desativado'));
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function highlightCode(code, lang) {
+      if (!settings.highlighting) return escapeHtml(code);
+      const patterns = {
+        javascript: [
+          [/\/\/.*/g, 'comment'],
+          [/\/\*[\s\S]*?\*\//g, 'comment'],
+          [/".*?"|'.*?'|`.*?`/g, 'string'],
+          [/\b(function|return|var|let|const|if|else|for|while|do|switch|case|break|continue|try|catch|finally|throw|new|delete|typeof|instanceof|in|of|class|extends|import|export|from|default|async|await)\b/g, 'keyword'],
+          [/\b(true|false|null|undefined|NaN|Infinity)\b/g, 'keyword'],
+          [/\b([0-9]+\.?[0-9]*|\.[0-9]+)\b/g, 'number'],
+          [/([a-zA-Z_$][a-zA-Z0-9_$]*)\s*(?=\()/g, 'function'],
+          [/(=>|\+\+|--|&&|\|\||===|!==|==|!=|<=|>=)/g, 'operator']
+        ],
+        python: [
+          [/#.*/g, 'comment'],
+          [/"""[\s\S]*?"""|'''[\s\S]*?'''/g, 'string'],
+          [/".*?"|'.*?'/g, 'string'],
+          [/\b(def|class|if|elif|else|for|while|try|except|finally|with|as|import|from|return|yield|raise|pass|break|continue|and|or|not|in|is|lambda|global|nonlocal|assert|del|print)\b/g, 'keyword'],
+          [/\b(True|False|None)\b/g, 'keyword'],
+          [/\b([0-9]+\.?[0-9]*|\.[0-9]+)\b/g, 'number'],
+          [/([a-zA-Z_][a-zA-Z0-9_]*)\s*(?=\()/g, 'function']
+        ],
+        markdown: [
+          [/^#.*$/gm, 'keyword'],
+          [/^##.*$/gm, 'keyword'],
+          [/^###.*$/gm, 'keyword'],
+          [/\*\*.*?\*\*|__.*?__/g, 'string'],
+          [/\*.*?\*|_.*?_/g, 'property'],
+          [/\[.*?\]\(.*?\)/g, 'variable'],
+          [/`.*?`/g, 'operator'],
+          [/^\s*[-*+]\s/gm, 'function']
+        ],
+        json: [
+          [/".*?"(?=\s*:)/g, 'property'],
+          [/".*?"/g, 'string'],
+          [/\b(true|false|null)\b/g, 'keyword'],
+          [/\b([0-9]+\.?[0-9]*|\.[0-9]+)\b/g, 'number']
+        ],
+        c: [
+          [/\/\/.*/g, 'comment'],
+          [/\/\*[\s\S]*?\*\//g, 'comment'],
+          [/".*?"/g, 'string'],
+          [/\b(int|char|float|double|void|long|short|unsigned|signed|const|static|extern|auto|register|sizeof|struct|union|enum|typedef|if|else|for|while|do|switch|case|break|continue|return|goto|default)\b/g, 'keyword'],
+          [/\b([0-9]+\.?[0-9]*|\.[0-9]+)\b/g, 'number'],
+          [/\b([A-Z_][A-Z0-9_]*)\b/g, 'variable'],
+          [/([a-zA-Z_][a-zA-Z0-9_]*)\s*(?=\()/g, 'function']
+        ],
+        rust: [
+          [/\/\/.*/g, 'comment'],
+          [/\/\*[\s\S]*?\*\//g, 'comment'],
+          [/".*?"/g, 'string'],
+          [/\b(fn|let|mut|const|if|else|for|while|loop|match|return|break|continue|struct|enum|impl|trait|type|pub|use|mod|crate|self|super|where|async|await|move)\b/g, 'keyword'],
+          [/\b(true|false|Some|None|Ok|Err)\b/g, 'keyword'],
+          [/\b([0-9]+\.?[0-9]*|\.[0-9]+)\b/g, 'number'],
+          [/([a-zA-Z_][a-zA-Z0-9_]*)\s*(?=\()/g, 'function']
+        ],
+        powershell: [
+          [/#.*/g, 'comment'],
+          [/<#[\s\S]*?#>/g, 'comment'],
+          [/".*?"|'.*?'/g, 'string'],
+          [/\$(\w+)/g, 'variable'],
+          [/\b(function|if|else|elseif|for|foreach|while|do|switch|case|default|break|continue|return|try|catch|finally|throw|param|begin|process|end|class|enum)\b/gi, 'keyword'],
+          [/\b([0-9]+\.?[0-9]*|\.[0-9]+)\b/g, 'number'],
+          [/([a-zA-Z_][a-zA-Z0-9_\-]*)\s*(?=\()/g, 'function']
+        ],
+        batch: [
+          [/^rem.*$/gmi, 'comment'],
+          [/::.*$/gm, 'comment'],
+          [/".*?"/g, 'string'],
+          [/%[a-zA-Z0-9_]+%/g, 'variable'],
+          [/\b(if|else|for|goto|call|exit|pause|echo|set|setlocal|endlocal|errorlevel)\b/gi, 'keyword'],
+          [/\b([0-9]+\.?[0-9]*|\.[0-9]+)\b/g, 'number']
+        ],
+        bash: [
+          [/#.*/g, 'comment'],
+          [/".*?"|'.*?'/g, 'string'],
+          [/\$(\w+|\{[^}]+\})/g, 'variable'],
+          [/\b(if|then|else|elif|fi|for|while|do|done|case|esac|function|return|exit|local|export|source)\b/g, 'keyword'],
+          [/\b([0-9]+\.?[0-9]*|\.[0-9]+)\b/g, 'number'],
+          [/([a-zA-Z_][a-zA-Z0-9_]*)\s*(?=\()/g, 'function']
+        ]
+      };
+      let highlighted = escapeHtml(code);
+      const langPatterns = patterns[lang];
+      if (!langPatterns) return highlighted;
+      const tokens = [];
+      langPatterns.forEach(([regex, className]) => {
+        const matches = code.matchAll(regex);
+        for (const match of matches) {
+          tokens.push({ start: match.index, end: match.index + match[0].length, text: match[0], className });
+        }
+      });
+      tokens.sort((a, b) => a.start - b.start);
+      const filtered = [];
+      let lastEnd = 0;
+      for (const token of tokens) {
+        if (token.start >= lastEnd) {
+          filtered.push(token);
+          lastEnd = token.end;
+        }
+      }
+      let result = '';
+      let pos = 0;
+      for (const token of filtered) {
+        result += escapeHtml(code.substring(pos, token.start));
+        result += '<span class="hl-' + token.className + '">' + escapeHtml(token.text) + '</span>';
+        pos = token.end;
+      }
+      result += escapeHtml(code.substring(pos));
+      return result;
+    }
+
+    function updateHighlighting() {
+      const editor = document.getElementById('editor');
+      const highlightLayer = document.getElementById('highlight-layer');
+      if (!editor || !highlightLayer || !settings.highlighting) return;
+      const tab = getActiveTab();
+      if (!tab) return;
+      const lang = tab.format === 'markdown' ? 'markdown' : tab.format === 'script' ? detectLanguage(tab.path || tab.title) : tab.format === 'json' ? 'json' : 'plaintext';
+      if (lang === 'plaintext') {
+        editor.style.color = '#e0e0e0';
+        highlightLayer.style.display = 'none';
+        return;
+      }
+      const highlighted = highlightCode(editor.value, lang);
+      highlightLayer.innerHTML = highlighted + '<br>';
+      editor.style.color = 'transparent';
+      editor.style.textShadow = 'none';
+      highlightLayer.style.display = 'block';
+      highlightLayer.scrollTop = editor.scrollTop;
+    }
+
+    function detectLanguage(pathOrTitle) {
+      const ext = (pathOrTitle || '').split('.').pop().toLowerCase();
+      const map = { js: 'javascript', mjs: 'javascript', cjs: 'javascript', ts: 'javascript', py: 'python', md: 'markdown', json: 'json', c: 'c', h: 'c', cpp: 'c', rs: 'rust', ps1: 'powershell', bat: 'batch', cmd: 'batch', sh: 'bash', bash: 'bash' };
+      return map[ext] || 'plaintext';
+    }
+
+    function updateToolbar() {
+      const tab = getActiveTab(), can = tab && tab.isExecutable && tab.runtimeAvailable, btn = document.getElementById('exec-btn');
+      btn.disabled = !can || !tauriReady;
+      btn.title = !tauriReady ? 'Aguardando inicialização...' : tab && tab.isExecutable && !tab.runtimeAvailable ? 'Runtime não disponível' : can ? 'Executar (paralelo)' : 'Arquivo não executável';
+    }
+
+    function updateFileType() {
+      const tab = getActiveTab();
+      if (!tab) return;
+      const f = { markdown: 'Markdown', plaintext: 'Texto', richtext: 'RTF', script: tab.runtimeAvailable ? 'Script' : 'Script (sem runtime)' };
+      document.getElementById('file-type').textContent = f[tab.format] || 'Texto';
+    }
+
+    function setStatus(msg) {
+      document.getElementById('status-message').textContent = msg;
+    }
+
+    let statusTimeout;
+    function updateStatusInfo() {
+      clearTimeout(statusTimeout);
+      statusTimeout = setTimeout(() => {
+        const tab = getActiveTab();
+        if (!tab) return;
+        const ed = document.getElementById('editor'), line = ed.value.slice(0, ed.selectionStart).split('\n').length;
+        document.getElementById('status-info').textContent = 'Ln ' + line;
+      }, 50);
+    }
+
+    const editor = document.getElementById('editor');
+    editor.addEventListener('input', e => {
+      const tab = getActiveTab();
+      if (tab) {
+        tab.content = e.target.value;
+        tab.dirty = true;
+        if (!window.__tabRenderScheduled) {
+          window.__tabRenderScheduled = true;
+          requestAnimationFrame(() => {
+            window.__tabRenderScheduled = false;
+            renderTabs();
+          });
+        }
+        updateLineNumbers();
+        updateHighlighting();
+        updateWordCount();
+        if (sessionSaveTimeout) clearTimeout(sessionSaveTimeout);
+        sessionSaveTimeout = setTimeout(saveSession, 2000);
+      }
+    });
+    editor.addEventListener('keyup', () => {
+      updateLineNumbers();
+      updateStatusInfo();
+    });
+    editor.addEventListener('click', updateStatusInfo);
+    editor.addEventListener('keydown', e => {
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        const s = editor.selectionStart, en = editor.selectionEnd, v = editor.value;
+        if (e.shiftKey) {
+          const lineStart = v.lastIndexOf('\n', s - 1) + 1;
+          const lineText = v.substring(lineStart, en);
+          const stripped = lineText.replace(/^( {1,4}|\t)/gm, '');
+          const diff = lineText.length - stripped.length;
+          editor.value = v.substring(0, lineStart) + stripped + v.substring(en);
+          editor.selectionStart = Math.max(lineStart, s - Math.min(diff, 4));
+          editor.selectionEnd = en - diff;
+        } else if (s !== en) {
+          const lineStart = v.lastIndexOf('\n', s - 1) + 1;
+          const lineText = v.substring(lineStart, en);
+          const indented = lineText.replace(/^/gm, '    ');
+          const diff = indented.length - lineText.length;
+          editor.value = v.substring(0, lineStart) + indented + v.substring(en);
+          editor.selectionStart = lineStart;
+          editor.selectionEnd = en + diff;
+        } else {
+          editor.value = v.substring(0, s) + '    ' + v.substring(en);
+          editor.selectionStart = editor.selectionEnd = s + 4;
+        }
+        editor.dispatchEvent(new Event('input'));
+      }
+    });
+    editor.addEventListener('scroll', () => {
+      const ln = document.getElementById('line-numbers');
+      const hl = document.getElementById('highlight-layer');
+      if (ln) ln.scrollTop = editor.scrollTop;
+      if (hl) hl.scrollTop = editor.scrollTop;
+    });
+
+    document.addEventListener('keydown', e => {
+      if (e.ctrlKey) {
+        if (e.key === 'n') {
+          e.preventDefault();
+          newTab();
+        } else if (e.key === 'o') {
+          e.preventDefault();
+          openFile();
+        } else if (e.key === 's' || e.key === 'S') {
+          e.preventDefault();
+          e.shiftKey ? saveFileAs() : saveFile();
+        } else if (e.key === 'h') {
+          e.preventDefault();
+          openFindReplace();
+        } else if (e.key === 'F5') {
+          e.preventDefault();
+          executeCurrent();
+        }
+      }
+    });
+
+    const resizeHandle = document.getElementById('resize-handle');
+    const sidebar = document.querySelector('.sidebar');
+    
+    resizeHandle.addEventListener('mousedown', e => {
+      isResizing = true;
+      resizeHandle.classList.add('active');
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+    });
+    document.addEventListener('mousemove', e => {
+      if (!isResizing) return;
+      const newWidth = Math.max(150, Math.min(500, e.clientX));
+      document.documentElement.style.setProperty('--sidebar-w', newWidth + 'px');
+      sidebar.style.width = newWidth + 'px';
+      sidebar.style.flexBasis = newWidth + 'px';
+    });
+    document.addEventListener('mouseup', () => {
+      if (isResizing) {
+        isResizing = false;
+        resizeHandle.classList.remove('active');
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+        try { localStorage.setItem('autunpad-sidebar-width', sidebar.style.width); } catch (e) { }
+      }
+    });
+
+    initDragHandlers();
+    
+    if (!restoreSession()) {
+      newTab();
+    } else {
+      renderTabs();
+      loadTabContent();
     }
     
+    updateLineNumbers();
+    updateTermCount();
+    setStatus('Aguardando inicialização...');
+    loadSettings();
+    applySettings();
+    setupAutoSave();
+    try {
+      const savedWidth = localStorage.getItem('autunpad-sidebar-width');
+      if (savedWidth) {
+        document.documentElement.style.setProperty('--sidebar-w', savedWidth);
+        sidebar.style.width = savedWidth;
+        sidebar.style.flexBasis = savedWidth;
+      }
+      if (localStorage.getItem('autunpad-term-visible') === '1') {
+        document.querySelector('.terminal-panel')?.classList.add('visible');
+      }
+    } catch (e) { }
+
+    let tauriCheckAttempts = 0;
+    const maxAttempts = 50;
+
+    async function checkTauri() {
+      if (window.__TAURI__ && window.__TAURI__.core) {
+        invoke = window.__TAURI__.core.invoke;
+        tauriReady = true;
+        console.log('Tauri inicializado com sucesso');
+        try {
+          const locale = await invoke('get_locale');
+          if (locale && i18n[locale]) currentLocale = locale;
+          else if (locale && locale.startsWith('pt')) currentLocale = 'pt-BR';
+          else currentLocale = 'en-US';
+        } catch (e) { currentLocale = 'pt-BR'; }
+        applyTranslations();
+        setStatus('Pronto');
+        updateToolbar();
+        invoke('check_runtimes').then(runtimes => {
+          pythonAvailable = runtimes.python;
+          console.log('Python disponível:', pythonAvailable);
+        }).catch(e => {
+          pythonAvailable = false;
+        });
+        const lastFolder = localStorage.getItem('autunpad-last-folder');
+        if (lastFolder) {
+          restoreFolder(lastFolder);
+        }
+      } else if (tauriCheckAttempts < maxAttempts) {
+        tauriCheckAttempts++;
+        setTimeout(checkTauri, 100);
+      } else {
+        console.error('Falha ao inicializar Tauri após', maxAttempts, 'tentativas');
+        setStatus('Erro: Tauri não inicializado');
+      }
+    }
+
     checkTauri();
 
-    // Atualizar estado de dirty no backend para controle de fechamento
     function updateDirtyState() {
       const hasChanges = tabs.some(t => t.hasRealChanges());
       if (tauriReady && invoke) {
-        invoke('set_dirty_state', { dirty: hasChanges }).catch(() => {});
+        if (window.__lastDirty === hasChanges) return;
+        window.__lastDirty = hasChanges;
+        invoke('set_dirty_state', { dirty: hasChanges }).catch(() => { });
       }
     }
-    
-    // Chamar updateDirtyState sempre que tabs mudam
+
     const originalRenderTabs = renderTabs;
-    renderTabs = function() {
+    renderTabs = function () {
       originalRenderTabs();
       updateDirtyState();
     };

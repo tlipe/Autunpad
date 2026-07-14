@@ -6,7 +6,8 @@ pub fn open_file() -> Option<PathBuf> {
     rfd::FileDialog::new()
         .set_title("Open File")
         .add_filter("Text Files", &["txt", "md"])
-        .add_filter("Scripts", &["ps1", "bat", "cmd", "sh", "py"])
+        .add_filter("Data Files", &["json"])
+        .add_filter("Scripts", &["ps1", "bat", "cmd", "sh", "py", "js", "mjs", "cjs"])
         .add_filter("Executables", &["exe"])
         .add_filter("All Files", &["*"])
         .pick_file()
@@ -19,8 +20,13 @@ pub fn save_file(path: Option<PathBuf>, suggested_name: Option<String>) -> Optio
             let mut dialog = rfd::FileDialog::new()
                 .set_title("Save File")
                 .add_filter("Text Files", &["txt", "md"])
-                .add_filter("Scripts", &["ps1", "bat", "cmd", "sh", "py"])
+                .add_filter("Data Files", &["json"])
+                .add_filter("Scripts", &["ps1", "bat", "cmd", "sh", "py", "js", "mjs", "cjs"])
                 .add_filter("All Files", &["*"]);
+            
+            if let Some(docs) = dirs::document_dir() {
+                dialog = dialog.set_directory(docs);
+            }
             
             if let Some(name) = suggested_name {
                 dialog = dialog.set_file_name(&name);
@@ -31,9 +37,11 @@ pub fn save_file(path: Option<PathBuf>, suggested_name: Option<String>) -> Optio
     }
 }
 
-pub fn read_file(path: &Path) -> String {
-    let content = fs::read_to_string(path).unwrap_or_else(|e| format!("Error reading file: {}", e));
-    crate::security::sanitize_content(&content)
+pub fn read_file(path: &Path) -> Result<String, String> {
+    let content = std::fs::read_to_string(path).map_err(|e| format!("Error reading file: {}", e))?;
+    let sanitized = crate::security::sanitize_content(&content);
+    drop(content);
+    Ok(sanitized)
 }
 
 pub fn write_file(path: &Path, content: &str) -> Result<(), io::Error> {
@@ -41,7 +49,7 @@ pub fn write_file(path: &Path, content: &str) -> Result<(), io::Error> {
 }
 
 pub fn scan_folder(path: &Path) -> Vec<PathBuf> {
-    let allowed_extensions = ["txt", "md", "ps1", "bat", "cmd", "exe", "sh", "py"];
+    let allowed_extensions = ["txt", "md", "json", "ps1", "bat", "cmd", "exe", "sh", "py", "js", "mjs", "cjs", "ts", "html", "css", "xml", "yml", "yaml", "toml", "log", "csv", "rs", "c", "h", "cpp"];
 
     fs::read_dir(path)
         .map(|entries| {
