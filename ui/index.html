@@ -546,40 +546,13 @@
     </div>
   </div>
 
-  <script>
-    function saveSession() {
-      try {
-        const session = {
-          tabs: tabs.map(t => ({
-            title: t.title,
-            content: t.content,
-            path: t.path,
-            format: t.format,
-            isExecutable: t.isExecutable,
-            runtimeAvailable: t.runtimeAvailable,
-            dirty: t.dirty,
-            saveFolder: t.saveFolder
-          })),
+  <script>)),
           activeTabId,
           timestamp: Date.now()
         };
         localStorage.setItem('autunpad-session', JSON.stringify(session));
       } catch (e) { }
-    }
-
-    function restoreSession() {
-      try {
-        const saved = localStorage.getItem('autunpad-session');
-        if (!saved) return false;
-        const session = JSON.parse(saved);
-        if (!session.tabs || !Array.isArray(session.tabs) || session.tabs.length === 0) return false;
-        
-        tabs = session.tabs.map(t => {
-          const tab = new Tab(t.id || Date.now() + Math.random(), t.title, t.content, t.path, t.format, t.isExecutable, t.runtimeAvailable);
-          tab.dirty = t.dirty || false;
-          tab.saveFolder = t.saveFolder;
-          return tab;
-        });
+    });
         
         activeTabId = session.activeTabId && tabs.find(t => t.id === session.activeTabId) 
           ? session.activeTabId 
@@ -599,7 +572,6 @@
     let settings = { lineNumbers: true, wordWrap: false, fontSize: 14, highlighting: true, autoSave: false };
     let dragState = null;
     let isResizing = false;
-    let sessionSaveTimeout = null;
     const i18n = {
       'pt-BR': {
         new_tab: 'Nova aba', open_file: 'Abrir arquivo', save: 'Salvar', save_as: 'Salvar como',
@@ -2106,8 +2078,6 @@
         updateLineNumbers();
         updateHighlighting();
         updateWordCount();
-        if (sessionSaveTimeout) clearTimeout(sessionSaveTimeout);
-        sessionSaveTimeout = setTimeout(saveSession, 2000);
       }
     });
     editor.addEventListener('keyup', () => {
@@ -2198,12 +2168,12 @@
 
     initDragHandlers();
     
-    if (!restoreSession()) {
-      newTab();
-    } else {
-      renderTabs();
-      loadTabContent();
-    }
+    localStorage.removeItem('autunpad-session');
+    newTab();
+    
+    window.addEventListener('beforeunload', () => {
+      try { localStorage.removeItem('autunpad-session'); } catch (e) { }
+    });
     
     updateLineNumbers();
     updateTermCount();
