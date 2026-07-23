@@ -1,58 +1,58 @@
 # Autunpad
 
-Editor de texto desktop multi-abas com execução de scripts integrada.
+Desktop multi-tab text editor with integrated script execution.
 
-## Recursos
+## Features
 
-- Multi-abas com drag-and-drop
-- Explorador de arquivos na sidebar
-- Execução de scripts (Python, PowerShell, Batch, Shell)
-- Terminal integrado com múltiplas sessões
-- Syntax highlighting (JavaScript, Python, Markdown, JSON, C, Rust)
-- Buscar e substituir (Ctrl+H)
-- Histórico de arquivos salvos
-- Configurações persistentes (tamanho da fonte, quebra de linha, números de linha)
+- Multi-tabs with drag-and-drop  
+- File explorer in the sidebar  
+- Script execution (Python, PowerShell, Batch, Shell)  
+- Integrated terminal with multiple sessions  
+- Syntax highlighting (JavaScript, Python, Markdown, JSON, C, Rust)  
+- Find and replace (Ctrl+H)  
+- Saved files history  
+- Persistent settings (font size, line wrap, line numbers)  
 
-## Atalhos
+## Shortcuts
 
-| Atalho | Ação |
-|--------|------|
-| Ctrl+N | Nova aba |
-| Ctrl+O | Abrir arquivo |
-| Ctrl+S | Salvar arquivo |
-| Ctrl+H | Buscar e substituir |
-| F5 | Executar script |
+| Shortcut | Action |
+|----------|--------|
+| Ctrl+N   | New tab |
+| Ctrl+O   | Open file |
+| Ctrl+S   | Save file |
+| Ctrl+H   | Find and replace |
+| F5       | Run script |
 
-## Tecnologias
+## Technologies
 
-- **Backend**: Rust + Tauri 2
-- **Frontend**: HTML/CSS/JS vanilla
-- **Diálogos**: rfd
-- **Build**: Cargo
+- **Backend**: Rust + Tauri 2  
+- **Frontend**: HTML/CSS/JS vanilla  
+- **Dialogs**: rfd  
+- **Build**: Cargo  
 
-## Desenvolvimento
+## Development
 
 ```bash
-# Instalar CLI Tauri 2 (local)
+# Install Tauri 2 CLI (local)
 npm install
 
-# Executar em modo dev
+# Run in dev mode
 npx tauri dev
 
 # Build release
 npx tauri build
 ```
 
-> **Nota:** o `cargo tauri` global na máquina pode estar na v1. Use `npx tauri` (v2) neste projeto.
+> **Note:** The global `cargo tauri` on your machine may be v1. Use `npx tauri` (v2) for this project.
 
-## Estrutura
+## Structure
 
 ```
 src/
-  main.rs        # Comandos Tauri e setup
-  file_ops.rs    # Operações de arquivo
-  security.rs    # Validação de paths e extensões
-  executor.rs    # Execução de scripts em paralelo
+  main.rs        # Tauri commands and setup
+  file_ops.rs    # File operations
+  security.rs    # Path and extension validation
+  executor.rs    # Parallel script execution
 ui/
-  index.html     # Interface completa
+  index.html     # Full interface
 ```
