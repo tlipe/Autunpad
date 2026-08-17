@@ -487,9 +487,11 @@ fn main() {
             let window = app.get_webview_window("main").unwrap();
             let handle = app.handle().clone();
 
-            std::thread::spawn(|| {
-                let _ = is_python_available();
-            });
+            let _ = std::thread::Builder::new()
+                .stack_size(64 * 1024)
+                .spawn(|| {
+                    let _ = is_python_available();
+                });
 
             window.on_window_event(move |event| {
                 if let tauri::WindowEvent::CloseRequested { api, .. } = event {

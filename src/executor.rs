@@ -15,9 +15,9 @@ use std::os::windows::process::CommandExt;
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 
 const MAX_CONCURRENT: usize = 8;
-const MAX_OUTPUT: usize = 32 * 1024;
+const MAX_OUTPUT: usize = 16 * 1024;
 const DEFAULT_TIMEOUT_SECS: u64 = 300;
-const MAX_OUTPUT_LINES: usize = 400;
+const MAX_OUTPUT_LINES: usize = 200;
 
 static NEXT_ID: AtomicU64 = AtomicU64::new(1);
 static SESSIONS: OnceLock<Mutex<HashMap<u64, Arc<Session>>>> = OnceLock::new();
@@ -364,7 +364,7 @@ pub fn start_execution(path: &Path) -> Result<SessionInfo, String> {
         runtime: runtime.to_string().into_boxed_str(),
         path: path.to_string_lossy().to_string().into_boxed_str(),
         status: Mutex::new(Status::Running),
-        output: Mutex::new(String::with_capacity(1024)),
+        output: Mutex::new(String::new()),
         exit_code: Mutex::new(None),
         pid: AtomicU32::new(pid),
         started_ms: now_ms(),
@@ -382,36 +382,42 @@ pub fn start_execution(path: &Path) -> Result<SessionInfo, String> {
     let session_wait = Arc::clone(&session);
 
     if let Some(out) = stdout {
-        thread::spawn(move || {
-            let mut reader = BufReader::new(out);
-            let mut buf = String::new();
-            loop {
-                buf.clear();
-                match reader.read_line(&mut buf) {
-                    Ok(0) => break,
-                    Ok(_) => append_output(&session_out, &buf),
-                    Err(_) => break,
+        let _ = thread::Builder::new()
+            .stack_size(64 * 1024)
+            .spawn(move || {
+                let mut reader = BufReader::with_capacity(4096, out);
+                let mut buf = String::new();
+                loop {
+                    buf.clear();
+                    match reader.read_line(&mut buf) {
+                        Ok(0) => break,
+                        Ok(_) => append_output(&session_out, &buf),
+                        Err(_) => break,
+                    }
                 }
-            }
-        });
+            });
     }
 
     if let Some(err) = stderr {
-        thread::spawn(move || {
-            let mut reader = BufReader::new(err);
-            let mut buf = String::new();
-            loop {
-                buf.clear();
-                match reader.read_line(&mut buf) {
-                    Ok(0) => break,
-                    Ok(_) => append_output(&session_err, &buf),
-                    Err(_) => break,
+        let _ = thread::Builder::new()
+            .stack_size(64 * 1024)
+            .spawn(move || {
+                let mut reader = BufReader::with_capacity(4096, err);
+                let mut buf = String::new();
+                loop {
+                    buf.clear();
+                    match reader.read_line(&mut buf) {
+                        Ok(0) => break,
+                        Ok(_) => append_output(&session_err, &buf),
+                        Err(_) => break,
+                    }
                 }
-            }
-        });
+            });
     }
 
-    thread::spawn(move || {
+    let _ = thread::Builder::new()
+        .stack_size(64 * 1024)
+        .spawn(move || {
         let start = Instant::now();
         let timeout = Duration::from_secs(DEFAULT_TIMEOUT_SECS);
 
