@@ -56,3 +56,5 @@ src/
 ui/
   index.html     # Full interface
 ```
+
+### Made with 🦀 and Tauri
