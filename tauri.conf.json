@@ -19,7 +19,7 @@
         "resizable": true,
         "fullscreen": false,
         "center": true,
-        "additionalBrowserArgs": "--disable-gpu --disable-gpu-compositing --disable-software-rasterizer --disable-features=CalculateNativeWinOcclusion,TranslateUI,msSmartScreenProtection --disable-background-networking --disable-backgrounding-occluded-windows --disable-renderer-backgrounding --disable-component-update --disable-extensions --disable-sync --no-first-run --js-flags=\"--max-old-space-size=24\""
+        "additionalBrowserArgs": "--disable-gpu --disable-gpu-compositing --disable-software-rasterizer --process-per-site --disable-features=CalculateNativeWinOcclusion,TranslateUI,msSmartScreenProtection --disable-background-networking --disable-backgrounding-occluded-windows --disable-renderer-backgrounding --disable-component-update --disable-extensions --disable-sync --no-first-run --js-flags=\"--max-old-space-size=24\""
       }
     ],
     "security": {
