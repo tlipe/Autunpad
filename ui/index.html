@@ -2179,10 +2179,9 @@
     const maxAttempts = 50;
 
     async function checkTauri() {
-      if (window.__TAURI__ && window.__TAURI__.core) {
-        invoke = window.__TAURI__.core.invoke;
+      if (window.__TAURI_INTERNALS__) {
+        invoke = window.__TAURI_INTERNALS__.invoke;
         tauriReady = true;
-        console.log('Tauri inicializado com sucesso');
         try {
           const locale = await invoke('get_locale');
           if (locale && i18n[locale]) currentLocale = locale;
