@@ -19,7 +19,7 @@
         "resizable": true,
         "fullscreen": false,
         "center": true,
-        "additionalBrowserArgs": "--disable-gpu --disable-gpu-compositing --renderer-process-limit=1 --disable-site-isolation-trials --disable-features=CalculateNativeWinOcclusion,TranslateUI,msSmartScreenProtection,IsolateOrigins,site-per-process,RendererCodeIntegrity,OptimizationHints --disable-background-networking --disable-backgrounding-occluded-windows --disable-renderer-backgrounding --disable-component-update --disable-extensions --disable-sync --disable-hang-monitor --disable-client-side-phishing-detection --no-first-run --js-flags=\"--max-old-space-size=16\""
+        "additionalBrowserArgs": "--disable-gpu --disable-gpu-compositing --single-process --disable-site-isolation-trials --disable-features=CalculateNativeWinOcclusion,TranslateUI,msSmartScreenProtection,IsolateOrigins,site-per-process,RendererCodeIntegrity,OptimizationHints,BackForwardCache,IdleDetection,WebOTP,WebUSB,WebRTC,WebGL,WebAudio,MediaRouter --disable-background-networking --disable-backgrounding-occluded-windows --disable-renderer-backgrounding --disable-component-update --disable-extensions --disable-sync --disable-hang-monitor --disable-client-side-phishing-detection --no-first-run --js-flags=\"--max-old-space-size=12\""
       }
     ],
     "security": {
