@@ -27,8 +27,7 @@
       line-height: 1.4;
       background: #0a0a0a;
       color: #e0e0e0;
-      -webkit-font-smoothing: antialiased;
-      text-rendering: geometricPrecision;
+      -webkit-font-smoothing: auto;
     }
     
     body {
@@ -546,24 +545,7 @@
     </div>
   </div>
 
-  <script>)),
-          activeTabId,
-          timestamp: Date.now()
-        };
-        localStorage.setItem('autunpad-session', JSON.stringify(session));
-      } catch (e) { }
-    });
-        
-        activeTabId = session.activeTabId && tabs.find(t => t.id === session.activeTabId) 
-          ? session.activeTabId 
-          : tabs[0].id;
-        
-        return true;
-      } catch (e) {
-        return false;
-      }
-    }
-
+  <script>
     let tauriReady = false;
     let invoke = null;
     let pythonAvailable = null;
@@ -771,9 +753,9 @@
     function saveToHistory(title, content) {
       if (!content || !content.trim()) return;
       const history = JSON.parse(localStorage.getItem('autunpad-history') || '[]');
-      const entry = { title, content, timestamp: Date.now() };
+      const entry = { title, content: content.length > 51200 ? content.slice(0, 51200) : content, timestamp: Date.now() };
       history.unshift(entry);
-      if (history.length > 10) history.pop();
+      if (history.length > 5) history.pop();
       localStorage.setItem('autunpad-history', JSON.stringify(history));
     }
 
@@ -1251,7 +1233,7 @@
         const next = [];
         for (const s of sums) {
           const old = prev.get(s.id);
-          const needOut = !old || old.status !== s.status || old.output_len !== s.output_len || s.id === activeTermId;
+          const needOut = s.id === activeTermId && (!old || old.status !== s.status || old.output_len !== s.output_len);
           if (needOut) {
             try {
               const full = await invoke('get_execution', { id: s.id });
@@ -1259,6 +1241,8 @@
             } catch (e) {
               next.push({ ...s, output: (old && old.output) || '' });
             }
+          } else if (s.id === activeTermId && old) {
+            next.push(old);
           } else {
             next.push({ ...s, output: (old && old.output) || '' });
           }
@@ -1897,7 +1881,7 @@
     }
 
     function highlightCode(code, lang) {
-      if (!settings.highlighting) return escapeHtml(code);
+      if (!settings.highlighting || code.length > 100000) return escapeHtml(code);
       const patterns = {
         javascript: [
           [/\/\/.*/g, 'comment'],
@@ -2063,6 +2047,7 @@
     }
 
     const editor = document.getElementById('editor');
+    let _hlTimer = null, _lnTimer = null, _wcTimer = null;
     editor.addEventListener('input', e => {
       const tab = getActiveTab();
       if (tab) {
@@ -2075,9 +2060,12 @@
             renderTabs();
           });
         }
-        updateLineNumbers();
-        updateHighlighting();
-        updateWordCount();
+        clearTimeout(_lnTimer);
+        _lnTimer = setTimeout(updateLineNumbers, 150);
+        clearTimeout(_hlTimer);
+        _hlTimer = setTimeout(updateHighlighting, 300);
+        clearTimeout(_wcTimer);
+        _wcTimer = setTimeout(updateWordCount, 300);
       }
     });
     editor.addEventListener('keyup', () => {
@@ -2168,13 +2156,7 @@
 
     initDragHandlers();
     
-    localStorage.removeItem('autunpad-session');
     newTab();
-    
-    window.addEventListener('beforeunload', () => {
-      try { localStorage.removeItem('autunpad-session'); } catch (e) { }
-    });
-    
     updateLineNumbers();
     updateTermCount();
     setStatus('Aguardando inicialização...');

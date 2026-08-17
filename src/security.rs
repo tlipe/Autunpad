@@ -118,6 +118,10 @@ pub fn validate_filename(filename: &str) -> Result<(), String> {
 }
 
 pub fn sanitize_content(content: &str) -> String {
+    let needs_sanitizing = content.bytes().any(|b| b == 0 || (b < 32 && b != b'\n' && b != b'\r' && b != b'\t'));
+    if !needs_sanitizing {
+        return content.to_string();
+    }
     let mut result = String::with_capacity(content.len());
     for c in content.chars() {
         if c == '\0' {
@@ -127,6 +131,5 @@ pub fn sanitize_content(content: &str) -> String {
             result.push(c);
         }
     }
-    result.shrink_to_fit();
     result
 }

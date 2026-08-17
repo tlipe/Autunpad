@@ -39,9 +39,7 @@ pub fn save_file(path: Option<PathBuf>, suggested_name: Option<String>) -> Optio
 
 pub fn read_file(path: &Path) -> Result<String, String> {
     let content = std::fs::read_to_string(path).map_err(|e| format!("Error reading file: {}", e))?;
-    let sanitized = crate::security::sanitize_content(&content);
-    drop(content);
-    Ok(sanitized)
+    Ok(crate::security::sanitize_content(&content))
 }
 
 pub fn write_file(path: &Path, content: &str) -> Result<(), io::Error> {

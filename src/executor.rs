@@ -1,6 +1,6 @@
 use serde::Serialize;
 use std::collections::HashMap;
-use std::io::{BufRead, BufReader, Read};
+use std::io::{BufRead, BufReader};
 use std::path::Path;
 use std::process::{Child, Command, Stdio};
 use std::sync::atomic::{AtomicU32, AtomicU64, Ordering};
@@ -117,11 +117,20 @@ fn append_output(session: &Session, chunk: &str) {
             out.push_str(&chunk[..room]);
             out.push_str("\n...[truncated]...");
         }
-        
-        let lines: Vec<&str> = out.lines().collect();
-        if lines.len() > MAX_OUTPUT_LINES {
-            let start_line = lines.len() - MAX_OUTPUT_LINES;
-            *out = lines[start_line..].join("\n");
+
+        let line_count = out.matches('\n').count() + 1;
+        if line_count > MAX_OUTPUT_LINES {
+            let skip = line_count - MAX_OUTPUT_LINES;
+            let mut start = 0;
+            for _ in 0..skip {
+                if let Some(pos) = out[start..].find('\n') {
+                    start += pos + 1;
+                } else {
+                    break;
+                }
+            }
+            let trimmed = out[start..].to_string();
+            *out = trimmed;
         }
     }
 }
@@ -615,6 +624,4 @@ pub fn stop_execution() -> Result<String, String> {
     stop_all()
 }
 
-// silence unused import warning on non-windows if Read used only partially
-#[allow(dead_code)]
-fn _read_hint(_: &dyn Read) {}
+
